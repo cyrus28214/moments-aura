@@ -22,43 +22,27 @@ export function useFileUploader() {
     setFiles((prevFiles) => prevFiles.filter((file) => file.id !== id))
   }, [])
 
-  const setStatus = useCallback((id: string, status: FileStatus) => {
-    setFiles((prevFiles) =>
-      prevFiles.map((file) => (file.id === id ? { ...file, status } : file)),
-    )
-  }, [])
-
   const uploadFile = useCallback(
     async (id: string) => {
-      let fileToUpload: FileState | undefined
-      setFiles((prevFiles) => {
-        fileToUpload = prevFiles.find((file) => file.id === id)
-        if (fileToUpload) {
-          return prevFiles.map((file) =>
-            file.id === id ? { ...file, status: 'uploading' } : file,
-          )
-        }
-        return prevFiles
-      })
-
-      if (!fileToUpload) {
-        console.error(`File with id ${id} not found`)
+      const fileToUpload = files.find((file) => file.id === id)
+      if (!fileToUpload || fileToUpload.status !== 'ready') {
         return
       }
 
-      try {
-        const response = await uploadFileApi(fileToUpload.file)
-        if (response.code === 0) {
-          setStatus(id, 'success')
-        } else {
-          setStatus(id, 'error')
-        }
-      } catch (error) {
-        console.error('Upload failed:', error)
-        setStatus(id, 'error')
-      }
+      setFiles(
+        files.map((file) =>
+          file.id === id ? { ...file, status: 'uploading' } : file,
+        ),
+      )
+
+      const result = await uploadFileApi(fileToUpload.file)
+      console.log('uploadFile result', result)
+      const status = result.code === 0 ? 'success' : 'error'
+      setFiles(
+        files.map((file) => (file.id === id ? { ...file, status } : file)),
+      )
     },
-    [setStatus],
+    [setFiles, files],
   )
 
   return {
