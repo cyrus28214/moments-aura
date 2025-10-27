@@ -27,7 +27,7 @@ impl App {
 
         let router = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
-            .route("/upload", post(upload_handler))
+            .route("/photos/upload", post(upload_handler))
             .with_state(image_storage.clone());
 
         Self { router, listener }
