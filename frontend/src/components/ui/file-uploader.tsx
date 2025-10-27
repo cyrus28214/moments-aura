@@ -1,83 +1,84 @@
-import { useState } from 'react'
+'use client'
+
+import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 import { Upload } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-function FileUploader() {
-  const [file, setFile] = useState<File | null>(null)
+export interface FileUploaderProps {
+  onFileChange: (file: File | null) => void
+  name?: string
+  accept?: string
+  disabled?: boolean
+  labelText?: string
+  className?: string
+  id?: string
+}
+
+export function FileUploader({
+  onFileChange,
+  name,
+  accept,
+  disabled = false,
+  labelText = '点击或拖拽文件到这里上传',
+  className,
+  id: propId,
+}: FileUploaderProps) {
+  const autoId = React.useId()
+  const id = propId || autoId
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0])
+      onFileChange(e.target.files[0])
+    } else {
+      onFileChange(null)
     }
+    e.target.value = ''
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault()
+    e.stopPropagation()
+  }
 
-    if (!file) {
-      alert('请先选择一个文件。')
-      return
-    }
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (disabled) return
 
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      // 示例：发送到你的 /api/upload 路由
-      // const response = await fetch("/api/upload", {
-      //   method: "POST",
-      //   body: formData,
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error("上传失败");
-      // }
-      // const data = await response.json();
-
-      console.log('文件上传逻辑在这里执行', formData.get('file'))
-      alert(`文件 "${file.name}" 准备上传!`)
-      // 成功上传后，清空文件状态
-      setFile(null)
-    } catch (error) {
-      console.error('上传出错:', error)
-      alert('文件上传失败。')
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFileChange(e.dataTransfer.files[0])
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
+    <div className="w-full">
       <Label
-        htmlFor="file-upload"
-        className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer border-input bg-background hover:bg-accent"
+        htmlFor={id}
+        className={cn(
+          'flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg border-input bg-background',
+          disabled
+            ? 'cursor-not-allowed opacity-50'
+            : 'cursor-pointer hover:bg-accent',
+          className,
+        )}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <Upload className="w-10 h-10 text-muted-foreground" />
-        <span className="mt-2 text-sm text-muted-foreground">
-          点击或拖拽文件到这里上传
-        </span>
+        <span className="mt-2 text-sm text-muted-foreground">{labelText}</span>
       </Label>
 
       <Input
-        id="file-upload"
+        id={id}
+        name={name}
         type="file"
         className="hidden"
         onChange={handleFileChange}
-        // 在这里限制文件类型
-        // accept="image/png, image/jpeg"
+        accept={accept}
+        disabled={disabled}
       />
-
-      {file && (
-        <div className="text-sm font-medium">
-          已选择文件: <span className="text-muted-foreground">{file.name}</span>
-        </div>
-      )}
-
-      <Button type="submit" disabled={!file} className="w-full">
-        上传文件
-      </Button>
-    </form>
+    </div>
   )
 }
-
-export default FileUploader
