@@ -1,6 +1,5 @@
 mod app;
 mod config;
-mod object_storage;
 use std::path::Path;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
