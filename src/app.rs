@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::{fs, path::PathBuf};
 
 use crate::config::AppConfig;
+use axum::Json;
 use axum::{
     Router,
     body::Bytes,
@@ -9,6 +10,7 @@ use axum::{
     routing::{get, post},
 };
 use object_store::{ObjectStore, local::LocalFileSystem, path::Path as ObjectStorePath};
+use serde_json::json;
 use tracing::info;
 
 pub struct App {
@@ -26,7 +28,7 @@ impl App {
         let image_storage = Arc::new(image_storage);
 
         let router = Router::new()
-            .route("/", get(|| async { "Hello, World!" }))
+            .route("/ping", get(ping_handler))
             .route("/photos/upload", post(upload_handler))
             .with_state(image_storage.clone());
 
@@ -38,6 +40,13 @@ impl App {
         axum::serve(self.listener, self.router).await.unwrap();
         info!("Server stopped");
     }
+}
+
+async fn ping_handler() -> Json<serde_json::Value> {
+    Json(json!({
+        "code": "OK",
+        "data": "pong"
+    }))
 }
 
 async fn upload_handler(
