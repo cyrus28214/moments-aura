@@ -6,6 +6,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  Link,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
@@ -13,10 +14,20 @@ import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
 
 import App from './App.tsx'
+import PlaygroundPage from './features/playground/page.tsx'
 
 const rootRoute = createRootRoute({
   component: () => (
     <>
+      <div className="p-2 flex gap-2">
+        <Link to="/" className="[&.active]:font-bold">
+          Home
+        </Link>
+        <Link to="/playground" className="[&.active]:font-bold">
+          Playground
+        </Link>
+      </div>
+      <hr />
       <Outlet />
       <TanStackRouterDevtools />
     </>
@@ -29,7 +40,13 @@ const indexRoute = createRoute({
   component: App,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute])
+const playgroundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/playground',
+  component: PlaygroundPage,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, playgroundRoute])
 
 const router = createRouter({
   routeTree,

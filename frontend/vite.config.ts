@@ -1,13 +1,11 @@
 import { defineConfig } from 'vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { loadEnv } from 'vite'
 
 import { resolve } from 'node:path'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+export default defineConfig(() => {
   return {
     plugins: [viteReact(), tailwindcss()],
     test: {
@@ -19,10 +17,13 @@ export default defineConfig(({ mode }) => {
         '@': resolve(__dirname, './src'),
       },
     },
-    proxy: {
-      "/api": {
-        target: 'http://localhost:8080',
-        rewrite: (path: string) => path.replace(/^\/api/, ''),
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api/, ''),
+        },
       },
     },
   }

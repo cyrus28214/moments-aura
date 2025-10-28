@@ -1,11 +1,3 @@
-# README
-
-在`.env`文件中填写：
-
-```env
-VITE_API_BASE_URL="/api"
-```
-
 Welcome to your new TanStack app!
 
 # Getting Started
