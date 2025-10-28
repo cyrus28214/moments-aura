@@ -7,7 +7,7 @@ import { Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface FileUploaderProps {
-  onFileChange: (file: File | null) => void
+  onAddFiles: (files: FileList) => void
   name?: string
   accept?: string
   disabled?: boolean
@@ -17,7 +17,7 @@ export interface FileUploaderProps {
 }
 
 export function FileUploader({
-  onFileChange,
+  onAddFiles,
   name,
   accept,
   disabled = false,
@@ -30,9 +30,7 @@ export function FileUploader({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFileChange(e.target.files[0])
-    } else {
-      onFileChange(null)
+      onAddFiles(e.target.files)
     }
     e.target.value = ''
   }
@@ -48,7 +46,7 @@ export function FileUploader({
     if (disabled) return
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFileChange(e.dataTransfer.files[0])
+      onAddFiles(e.dataTransfer.files)
     }
   }
 

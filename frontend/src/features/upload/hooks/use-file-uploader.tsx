@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { uploadFile as uploadFileApi } from '../api'
 
 export type FileStatus = 'ready' | 'uploading' | 'success' | 'error'
@@ -14,36 +14,44 @@ export function useFileUploader() {
 
   const addFile = useCallback((file: File) => {
     const id = crypto.randomUUID()
-    setFiles((prevFiles) => [...prevFiles, { id, file, status: 'ready' }])
+    setFiles((files) => [...files, { id, file, status: 'ready' }])
     return id
   }, [])
 
   const removeFile = useCallback((id: string) => {
-    setFiles((prevFiles) => prevFiles.filter((file) => file.id !== id))
+    setFiles((files) => files.filter((file) => file.id !== id))
   }, [])
 
-  const uploadFile = useCallback(
-    async (id: string) => {
-      const fileToUpload = files.find((file) => file.id === id)
-      if (!fileToUpload || fileToUpload.status !== 'ready') {
-        return
+  const uploadFile = useCallback(async (id: string) => {
+    const uploadTask = async (file: File) => {
+      try {
+        const result = await uploadFileApi(file)
+        const status = result.code === 0 ? 'success' : 'error'
+        setFiles((files) =>
+          files.map((file) => (file.id === id ? { ...file, status } : file)),
+        )
+      } catch {
+        setFiles((files) =>
+          files.map((file) =>
+            file.id === id ? { ...file, status: 'error' } : file,
+          ),
+        )
+      }
+    }
+
+    setFiles((files) => {
+      const fileToUpdate = files.find((file) => file.id === id)
+      if (!fileToUpdate) {
+        return files
       }
 
-      setFiles(
-        files.map((file) =>
-          file.id === id ? { ...file, status: 'uploading' } : file,
-        ),
-      )
+      uploadTask(fileToUpdate.file)
 
-      const result = await uploadFileApi(fileToUpload.file)
-      console.log('uploadFile result', result)
-      const status = result.code === 0 ? 'success' : 'error'
-      setFiles(
-        files.map((file) => (file.id === id ? { ...file, status } : file)),
+      return files.map((file) =>
+        file.id === id ? { ...file, status: 'uploading' } : file,
       )
-    },
-    [setFiles, files],
-  )
+    })
+  }, [])
 
   return {
     files,
