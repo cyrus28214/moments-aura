@@ -1,8 +1,8 @@
-import type { FileState } from '../hooks/use-file-uploader'
+import type { UploadingFile } from '../hooks/use-file-uploader'
 import { FileBadge } from './file-badge'
 
 export interface FileBadgeListProps {
-  files: FileState[]
+  files: UploadingFile[]
   onRetry?: (id: string) => void
   onCancel?: (id: string) => void
   onClear?: (id: string) => void

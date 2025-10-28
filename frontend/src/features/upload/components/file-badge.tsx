@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Loader2, Check, AlertCircle, RotateCw, X, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import type { FileUploadStatus } from '../hooks/use-file-uploader'
 
 export interface FileBadgeProps {
   text: string
-  status: 'ready' | 'uploading' | 'success' | 'error'
+  status: FileUploadStatus
   onRetry?: () => void
   onCancel?: () => void
   onClear?: () => void
@@ -66,8 +67,8 @@ export function FileBadge({
     >
       <span className="max-w-[200px] truncate">{text}</span>
 
-      {status === 'ready' && cancelButton}
-      {status === 'uploading' && uploadingIcon}
+      {status === 'idle' && cancelButton}
+      {status === 'loading' && uploadingIcon}
       {status === 'success' &&
         (onClear && isHovered ? clearButton : successIcon)}
       {status === 'error' && (onRetry && isHovered ? retryButton : errorIcon)}
