@@ -5,7 +5,6 @@ use std::path::Path;
 use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-
 #[tokio::main]
 async fn main() {
     // logger

@@ -5,16 +5,17 @@ edition = "2024"
 
 [dependencies]
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "fs"] }
-serde = { version = "1.0.228", features = ["derive"] }
-axum = { version = "0.8.6", features = ["multipart"] }
+serde = { version = "1.0.228", features = ["derive", ] }
+axum = { version = "0.8.6", features = ["multipart", "macros"] }
 toml = "0.9.8"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-bytes = "1.10.1"
 object_store = "0.12.4"
 serde_json = "1.0.145"
 dotenvy = "0.15.7"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "postgres", "macros"] }
+tokio-util = { version = "0.7.16", features = ["io"] }
+futures-util = "0.3.31"
 
 [dev-dependencies]
 tempfile = "3.10"

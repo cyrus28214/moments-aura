@@ -1,3 +1,5 @@
+mod photos;
+
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
@@ -6,27 +8,40 @@ use std::{fs, path::PathBuf};
 use crate::config::AppConfig;
 use crate::db;
 
+use axum::extract::FromRef;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::Json;
 use axum::{
-    Json,
     Router,
-    body::Bytes,
-    extract::{Multipart, State},
     routing::{get, post},
 };
 
-use object_store::{ObjectStore, local::LocalFileSystem, path::Path as ObjectStorePath};
-use serde_json::json;
+use object_store::local::LocalFileSystem;
 use sqlx::PgPool;
 use tracing::info;
+
+#[derive(Clone)]
+pub struct AppState {
+    image_store: Arc<LocalFileSystem>,
+    db: PgPool,
+}
+
+impl FromRef<AppState> for Arc<LocalFileSystem> {
+    fn from_ref(state: &AppState) -> Arc<LocalFileSystem> {
+        state.image_store.clone()
+    }
+}
+
+impl FromRef<AppState> for PgPool {
+    fn from_ref(state: &AppState) -> PgPool {
+        state.db.clone()
+    }
+}
 
 pub struct App {
     router: Router,
     listener: tokio::net::TcpListener,
-}
-
-pub struct AppState {
-    pub image_store: LocalFileSystem,
-    pub db: PgPool,
 }
 
 impl App {
@@ -47,20 +62,13 @@ impl App {
         // image storage
         let image_store = LocalFileSystem::new_with_prefix(image_storage_path)
             .expect("Failed to create image storage");
-
-        // app state
-        let app_state = AppState {
-            image_store: image_store,
-            db: db,
-        };
-        let app_state = Arc::new(app_state);
+        let image_store = Arc::new(image_store);
 
         // router
         let router = Router::new()
             .route("/ping", get(ping_handler))
-            .route("/photos/upload", post(upload_handler))
-            .with_state(app_state);
-
+            .route("/photos/upload", post(photos::photos_upload_handler))
+            .with_state(AppState { image_store, db });
         Self { router, listener }
     }
 
@@ -71,29 +79,6 @@ impl App {
     }
 }
 
-async fn ping_handler() -> Json<serde_json::Value> {
-    Json(json!({
-        "code": "OK",
-        "data": "pong"
-    }))
-}
-
-async fn upload_handler(
-    State(state): State<Arc<AppState>>,
-    mut multipart: Multipart,
-) -> String {
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        if let Some(filename) = field.file_name() {
-            let filename = filename.to_string();
-            info!("Receiving file: {}", filename);
-            let data: Bytes = field.bytes().await.unwrap();
-            let store_path = ObjectStorePath::from(filename.clone());
-
-            state.image_store.put(&store_path, data.into()).await.unwrap();
-
-            info!("File '{}' saved.", filename);
-            return format!("File '{}' uploaded successfully.", filename);
-        }
-    }
-    "No file was uploaded.".to_string()
+async fn ping_handler() -> impl IntoResponse {
+    (StatusCode::OK, Json("pong"))
 }
