@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::path::Path;
 use tracing::info;
+
 fn default_address() -> String {
     let default = "0.0.0.0:8080".to_string();
     info!("Using default address: {}", default);

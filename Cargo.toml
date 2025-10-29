@@ -13,6 +13,8 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 bytes = "1.10.1"
 object_store = "0.12.4"
 serde_json = "1.0.145"
+dotenvy = "0.15.7"
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "postgres", "macros"] }
 
 [dev-dependencies]
 tempfile = "3.10"
