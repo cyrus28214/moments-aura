@@ -3,6 +3,7 @@ mod error;
 mod images;
 
 pub use config::AppConfig;
+use tower_http::trace::TraceLayer;
 
 use crate::infra::db;
 use axum::{Router, extract::FromRef, routing};
@@ -50,7 +51,8 @@ impl AppConfig {
 
         let router = Router::new()
             .route("/ping", routing::get(ping_handler))
-            .with_state(AppState { image_store, db });
+            .with_state(AppState { image_store, db })
+            .layer(TraceLayer::new_for_http());
 
         tracing::info!("Running server on {}", self.address);
         axum::serve(listener, router).await.unwrap();

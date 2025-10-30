@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use axum::extract::{Multipart, State};
 use object_store::ObjectStore;
+
+use crate::app::error::AppError;
 // use object_store::{local::LocalFileSystem, ObjectStore, WriteMultipart};
 
 // #[derive(Debug)]
@@ -103,8 +105,50 @@ use object_store::ObjectStore;
 pub async fn images_upload_handler(
     State(image_store): State<Arc<dyn ObjectStore>>,
     mut multipart: Multipart,
-) {
-    loop {
-        let result = multipart.next_field().await;
+) -> Result<(), AppError> {
+    while let Some(mut field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BodyParseFailed(e.to_string()))?
+    {
+        let name = match field.name() {
+            Some(name) => name,
+            None => continue,
+        };
+
+        if name != "file" {
+            continue;
+        }
+
+        let file_name = field.file_name().ok_or(AppError::BodyParseFailed(
+            "File name not provided".to_string(),
+        ))?;
+
+        let file_path = object_store::path::Path::from(file_name);
+
+        let upload = image_store
+            .put_multipart(&file_path)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let mut writer = object_store::WriteMultipart::new(upload);
+
+        while let Some(chunk) = field
+            .chunk()
+            .await
+            .map_err(|e| AppError::BodyParseFailed(e.to_string()))?
+        {
+            writer.write(&chunk);
+        }
+
+        writer
+            .finish()
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        return Ok(());
     }
+    Err(AppError::BodyParseFailed(
+        "File field not found".to_string(),
+    ))
 }

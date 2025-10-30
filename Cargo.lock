@@ -42,6 +42,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.100"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
+
+[[package]]
 name = "async-trait"
 version = "0.1.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1063,6 +1069,7 @@ dependencies = [
 name = "moments-aura"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "dotenvy",
  "futures-util",
@@ -1071,9 +1078,11 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tempfile",
+ "thiserror",
  "tokio",
  "tokio-util",
  "toml",
+ "tower-http",
  "tracing",
  "tracing-panic",
  "tracing-subscriber",
@@ -2107,6 +2116,22 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "http",
+ "http-body",
+ "pin-project-lite",
  "tower-layer",
  "tower-service",
  "tracing",
