@@ -12,7 +12,7 @@ pub async fn images_upload_handler(
     mut multipart: Multipart,
 ) -> Result<(), AppError> {
     let mut upload_count = 0;
-    while let Some(ref field) = multipart
+    while let Some(field) = multipart
         .next_field()
         .await
         .map_err(|e| AppError::BodyParseFailed(e.to_string()))?
