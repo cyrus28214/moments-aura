@@ -1,6 +1,5 @@
 mod app;
-mod config;
-mod db;
+mod infra;
 use std::path::Path;
 use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -11,20 +10,18 @@ async fn main() {
     let filter = EnvFilter::new("info");
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+    std::panic::set_hook(Box::new(tracing_panic::panic_hook));
 
     // environment variables
     match dotenvy::dotenv() {
-        Ok(_) => {
-            info!("Loaded environment variables from .env");
-        }
-        Err(e) => {
-            warn!("Failed to load environment variables from .env: {}. Continuing without .env.", e);
-        }
+        Ok(_) => info!("Loaded environment variables from .env"),
+        Err(e) => warn!(
+            "Could not load environment variables from .env: {}, continuing with system environment variables.",
+            e
+        ),
     }
 
-    // config
+    // app
     let config_path = Path::new("config.toml");
-    let config = config::AppConfig::from_toml_file(config_path);
-    let app = app::App::new(config).await;
-    app.run().await;
+    app::AppConfig::from_file(config_path).run().await;
 }

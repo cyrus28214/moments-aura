@@ -1,34 +1,23 @@
-mod photos;
+mod config;
+mod error;
+mod images;
 
-use std::collections::HashMap;
-use std::env;
-use std::sync::Arc;
-use std::{fs, path::PathBuf};
+pub use config::AppConfig;
 
-use crate::config::AppConfig;
-use crate::db;
-
-use axum::extract::FromRef;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::Json;
-use axum::{
-    Router,
-    routing::{get, post},
-};
-
-use object_store::local::LocalFileSystem;
+use crate::infra::db;
+use axum::{Router, extract::FromRef, routing};
+use object_store::{ObjectStore, local::LocalFileSystem};
 use sqlx::PgPool;
-use tracing::info;
+use std::{fs, path::PathBuf, sync::Arc};
 
 #[derive(Clone)]
 pub struct AppState {
-    image_store: Arc<LocalFileSystem>,
+    image_store: Arc<dyn ObjectStore>,
     db: PgPool,
 }
 
-impl FromRef<AppState> for Arc<LocalFileSystem> {
-    fn from_ref(state: &AppState) -> Arc<LocalFileSystem> {
+impl FromRef<AppState> for Arc<dyn ObjectStore> {
+    fn from_ref(state: &AppState) -> Arc<dyn ObjectStore> {
         state.image_store.clone()
     }
 }
@@ -39,46 +28,36 @@ impl FromRef<AppState> for PgPool {
     }
 }
 
-pub struct App {
-    router: Router,
-    listener: tokio::net::TcpListener,
-}
+impl AppConfig {
+    pub async fn run(self) {
+        let listener = tokio::net::TcpListener::bind(&self.address)
+            .await
+            .expect(&format!("Failed to bind address: {}", self.address));
 
-impl App {
-    pub async fn new(config: AppConfig) -> Self {
-        let env_vars = env::vars().collect();
-        Self::new_with_env_vars(config, &env_vars).await
-    }
-
-    pub async fn new_with_env_vars(config: AppConfig, env_vars: &HashMap<String, String>) -> Self {
-        let listener = tokio::net::TcpListener::bind(config.address).await.unwrap();
-        let image_storage_path = PathBuf::from(&config.image_storage_path);
-        fs::create_dir_all(&image_storage_path).unwrap();
-
-        // database
-        let database_url = env_vars.get("DATABASE_URL").expect("DATABASE_URL is not set");
-        let db = db::create_pool(database_url).await.expect("Failed to create database pool");
-        
-        // image storage
+        let image_storage_path = PathBuf::from(&self.image_storage_path);
+        fs::create_dir_all(&image_storage_path).expect(&format!(
+            "Failed to create image storage directory: {}",
+            image_storage_path.display()
+        ));
         let image_store = LocalFileSystem::new_with_prefix(image_storage_path)
             .expect("Failed to create image storage");
         let image_store = Arc::new(image_store);
 
-        // router
-        let router = Router::new()
-            .route("/ping", get(ping_handler))
-            .route("/photos/upload", post(photos::photos_upload_handler))
-            .with_state(AppState { image_store, db });
-        Self { router, listener }
-    }
+        let db = db::create_pool(&self.database_url).await.expect(&format!(
+            "Failed to create database pool: {}",
+            self.database_url
+        ));
 
-    pub async fn run(self) {
-        info!("Running server on {}", self.listener.local_addr().unwrap());
-        axum::serve(self.listener, self.router).await.unwrap();
-        info!("Server stopped");
+        let router = Router::new()
+            .route("/ping", routing::get(ping_handler))
+            .with_state(AppState { image_store, db });
+
+        tracing::info!("Running server on {}", self.address);
+        axum::serve(listener, router).await.unwrap();
+        tracing::info!("Server stopped");
     }
 }
 
-async fn ping_handler() -> impl IntoResponse {
-    (StatusCode::OK, Json("pong"))
+async fn ping_handler() -> &'static str {
+    "pong"
 }
