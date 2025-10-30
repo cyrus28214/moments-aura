@@ -1,2 +1,2 @@
 address = "0.0.0.0:8080"
-image_storage_path = "images"
+store_path = "./data"
