@@ -6,7 +6,11 @@ pub use config::AppConfig;
 use tower_http::trace::TraceLayer;
 
 use crate::infra::db;
-use axum::{Router, extract::FromRef, routing};
+use axum::{
+    Router,
+    extract::{DefaultBodyLimit, FromRef},
+    routing,
+};
 use object_store::{ObjectStore, local::LocalFileSystem};
 use sqlx::PgPool;
 use std::{fs, path::PathBuf, sync::Arc};
@@ -51,6 +55,11 @@ impl AppConfig {
 
         let router = Router::new()
             .route("/ping", routing::get(ping_handler))
+            .route(
+                "/images/upload",
+                routing::post(images::images_upload_handler),
+            )
+            .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
             .with_state(AppState { image_store, db })
             .layer(TraceLayer::new_for_http());
 
