@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::{Multipart, State};
 use object_store::ObjectStore;
 
-use crate::app::error::AppError;
+use crate::{app::error::AppError, infra::util::rewrite_file_name};
 
 const MAX_FILES: usize = 1;
 
@@ -12,7 +12,7 @@ pub async fn images_upload_handler(
     mut multipart: Multipart,
 ) -> Result<(), AppError> {
     let mut upload_count = 0;
-    while let Some(mut field) = multipart
+    while let Some(ref field) = multipart
         .next_field()
         .await
         .map_err(|e| AppError::BodyParseFailed(e.to_string()))?
@@ -59,11 +59,4 @@ pub async fn images_upload_handler(
     }
 
     Ok(())
-}
-
-pub fn rewrite_file_name(file_name: &str) -> String {
-    let file_name_filtered =
-        file_name.replace(|c: char| c != '.' && !c.is_ascii_alphanumeric(), "_");
-
-    format!("{}_{}", uuid::Uuid::now_v7(), file_name_filtered)
 }

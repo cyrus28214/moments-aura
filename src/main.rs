@@ -2,14 +2,18 @@ mod app;
 mod infra;
 use std::path::Path;
 use tracing::{info, warn};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
     // logger
-    let filter = EnvFilter::new("info");
-    let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
     std::panic::set_hook(Box::new(tracing_panic::panic_hook));
 
     // environment variables

@@ -1,15 +1,9 @@
 import { apiClient } from '@/api'
 import { useState, useEffect } from 'react'
+import { uploadFile } from '../upload/api'
 
 const pingApi = async () => {
   const response = await apiClient.get('/ping')
-  return response.data
-}
-
-const uploadFile = async (file: File) => {
-  const formData = new FormData()
-  formData.append('file', file)
-  const response = await apiClient.post('/photos/upload', formData)
   return response.data
 }
 

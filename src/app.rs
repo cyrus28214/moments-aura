@@ -33,6 +33,18 @@ impl FromRef<AppState> for PgPool {
     }
 }
 
+fn create_router(app_state: AppState) -> Router {
+    Router::new()
+        .route("/ping", routing::get(ping_handler))
+        .route(
+            "/images/upload",
+            routing::post(images::images_upload_handler),
+        )
+        .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
+        .with_state(app_state)
+        .layer(TraceLayer::new_for_http())
+}
+
 impl AppConfig {
     pub async fn run(self) {
         let listener = tokio::net::TcpListener::bind(&self.address)
@@ -53,15 +65,7 @@ impl AppConfig {
             self.database_url
         ));
 
-        let router = Router::new()
-            .route("/ping", routing::get(ping_handler))
-            .route(
-                "/images/upload",
-                routing::post(images::images_upload_handler),
-            )
-            .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
-            .with_state(AppState { image_store, db })
-            .layer(TraceLayer::new_for_http());
+        let router = create_router(AppState { image_store, db });
 
         tracing::info!("Running server on {}", self.address);
         axum::serve(listener, router).await.unwrap();
