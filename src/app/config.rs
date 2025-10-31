@@ -3,14 +3,15 @@ use std::{collections::HashMap, env, path::Path};
 
 pub struct AppConfig {
     pub address: String,
-    pub store_path: String,
+    pub storage_dir: String,
     pub database_url: String,
 }
 
 #[derive(Deserialize)]
 pub struct AppConfigToml {
     pub address: Option<String>,
-    pub store_path: Option<String>,
+    pub storage_dir: Option<String>,
+    pub static_url: Option<String>,
 }
 
 impl AppConfig {
@@ -30,8 +31,10 @@ impl AppConfig {
             String::from("0.0.0.0:8080")
         });
 
-        let store_path = toml_config.store_path.unwrap_or_else(|| {
-            tracing::warn!("No store path provided in config file, using default \"./data\"");
+        let storage_dir = toml_config.storage_dir.unwrap_or_else(|| {
+            tracing::warn!(
+                "No storage directory provided in config file, using default \"./data\""
+            );
             String::from("./data")
         });
 
@@ -42,7 +45,7 @@ impl AppConfig {
 
         Self {
             address,
-            store_path,
+            storage_dir,
             database_url,
         }
     }

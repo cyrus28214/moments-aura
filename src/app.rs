@@ -40,6 +40,11 @@ fn create_router(app_state: AppState) -> Router {
             "/images/upload",
             routing::post(images::images_upload_handler),
         )
+        .route("/images/list", routing::get(images::images_list_handler))
+        .route(
+            "/images/{id}/content",
+            routing::get(images::images_get_content_handler),
+        )
         .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
         .with_state(app_state)
         .layer(TraceLayer::new_for_http())
@@ -51,12 +56,12 @@ impl AppConfig {
             .await
             .expect(&format!("Failed to bind address: {}", self.address));
 
-        let store_path = PathBuf::from(&self.store_path);
-        fs::create_dir_all(&store_path).expect(&format!(
+        let storage_dir = PathBuf::from(&self.storage_dir);
+        fs::create_dir_all(&storage_dir).expect(&format!(
             "Failed to create store directory: {}",
-            store_path.display()
+            storage_dir.display()
         ));
-        let store = LocalFileSystem::new_with_prefix(store_path).expect("Failed to create store");
+        let store = LocalFileSystem::new_with_prefix(storage_dir).expect("Failed to create store");
         let store = Arc::new(store);
 
         let db = db::create_pool(&self.database_url).await.expect(&format!(
@@ -64,11 +69,16 @@ impl AppConfig {
             self.database_url
         ));
 
-        let router = create_router(AppState { store, db });
+        let router = create_router(AppState {
+            store,
+            db: db.clone(),
+        });
 
         tracing::info!("Running server on {}", self.address);
         axum::serve(listener, router).await.unwrap();
         tracing::info!("Server stopped");
+
+        db.close().await;
     }
 }
 

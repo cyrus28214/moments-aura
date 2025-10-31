@@ -11,6 +11,8 @@ pub enum AppError {
     BadRequest(String),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
+    #[error("Image not found: {0}")]
+    ImageNotFound(u32),
 }
 
 impl IntoResponse for AppError {
@@ -27,6 +29,10 @@ impl IntoResponse for AppError {
             Self::InternalServerError(e) => {
                 tracing::error!(error = ?e, "{}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+            }
+            Self::ImageNotFound(id) => {
+                tracing::warn!(image_id = ?id, "Image not found");
+                (StatusCode::NOT_FOUND, format!("Image not found: {}", id)).into_response()
             }
         }
     }
