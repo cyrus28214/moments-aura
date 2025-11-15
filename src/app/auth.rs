@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::State, http::header, response::{IntoResponse, Response},
+    extract::State, http::{header, HeaderMap}, response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -141,4 +141,62 @@ pub async fn auth_login_handler(
     };
 
     Ok(([(header::SET_COOKIE, cookie_str)], Json(result)))
+}
+
+#[derive(Serialize)]
+pub struct AuthMeResult {
+    user: User,
+}
+
+/**
+ * Get current authenticated user information
+ * 
+ * 1. Extract token from cookie
+ * 2. Verify token and get user_id
+ * 3. Query user from database
+ * 4. Return user information
+ */
+pub async fn auth_me_handler(
+    State(db): State<PgPool>,
+    State(jwt_service): State<JwtService>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let cookie_header = headers.get(header::COOKIE)
+        .ok_or_else(|| AppError::BadRequest("Cookie not found".to_string()))?
+        .to_str()
+        .map_err(|_| AppError::BadRequest("Invalid cookie header".to_string()))?;
+
+    let token = cookie_header
+        .split(';')
+        .find_map(|cookie| {
+            let cookie = cookie.trim();
+            if cookie.starts_with("token=") {
+                Some(cookie[6..].to_string())
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| AppError::BadRequest("Token not found in cookie".to_string()))?;
+
+    let claims = jwt_service.verify_token(&token)
+        .map_err(|_| AppError::BadRequest("Invalid token".to_string()))?;
+
+    let user_id: i32 = claims.sub.parse()
+        .map_err(|_| AppError::BadRequest("Invalid user ID in token".to_string()))?;
+
+    let user = sqlx::query_as!(
+        User,
+        r#"SELECT id, name, email FROM "user" WHERE id = $1"#,
+        user_id
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    .ok_or_else(|| AppError::BadRequest("User not found".to_string()))?;
+
+    let result = AuthMeResult {
+        user,
+    };
+
+    Ok(Json(result))
 }

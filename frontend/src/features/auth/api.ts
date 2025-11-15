@@ -36,3 +36,16 @@ export const authLogin = async (payload: AuthLoginPayload): Promise<AuthLoginRes
     const response = await apiClient.post('/auth/login', payload)
     return response.data
 }
+
+export interface AuthMeResult {
+    user: {
+        id: number
+        name: string
+        email: string
+    }
+}
+
+export const authMe = async (): Promise<AuthMeResult> => {
+    const response = await apiClient.get('/auth/me')
+    return response.data
+}

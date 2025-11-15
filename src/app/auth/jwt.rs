@@ -1,12 +1,12 @@
 use time::{OffsetDateTime, Duration};
-use jsonwebtoken::{encode, EncodingKey, Header, errors::Error};
+use jsonwebtoken::{encode, decode, EncodingKey, DecodingKey, Header, errors::Error, Validation};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    sub: String,
-    iat: usize,
-    exp: usize,
+    pub sub: String,
+    pub iat: usize,
+    pub exp: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -34,5 +34,15 @@ impl JwtService {
         let header = Header::default();
 
         encode(&header, &claims, &EncodingKey::from_secret(&self.secret))
+    }
+
+    pub fn verify_token(&self, token: &str) -> Result<Claims, Error> {
+        let validation = Validation::default();
+        let token_data = decode::<Claims>(
+            token,
+            &DecodingKey::from_secret(&self.secret),
+            &validation,
+        )?;
+        Ok(token_data.claims)
     }
 }
