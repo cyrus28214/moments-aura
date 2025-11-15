@@ -1,7 +1,9 @@
 import { FileUploader } from '@/features/upload/components/file-uploader'
 import { FileBadge } from './features/upload/components/file-badge'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { uploadFile } from './features/upload/api'
+import { ImageList } from './features/image/components/image-list'
+import { getImages, type Image } from './features/image/api'
 
 interface FileInfo {
   id: string
@@ -11,7 +13,10 @@ interface FileInfo {
 
 function App() {
   const [files, setFiles] = useState<FileInfo[]>([])
-
+  const [images, setImages] = useState<Image[]>([])
+  useEffect(() => {
+    getImages().then(setImages)
+  }, [])
   const handleAddFiles = (file: FileList) => {
     const newFiles: FileInfo[] = Array.from(file).map((file) => ({
       id: crypto.randomUUID(),
@@ -48,6 +53,7 @@ function App() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <ImageList images={images} />
       <FileUploader onAddFiles={handleAddFiles} />
       <div className="flex gap-2 flex-wrap items-center">
       {files.map(getFileBadge)}

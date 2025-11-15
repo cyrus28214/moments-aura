@@ -104,8 +104,7 @@ pub async fn images_upload_handler(
 struct Image {
     id: i32,
     file_name: String,
-    file_size: i64,
-    url: String,
+    file_size: i64
 }
 
 #[derive(Serialize)]
@@ -124,8 +123,7 @@ pub async fn images_list_handler(
         .map(|image| Image {
             id: image.id,
             file_name: image.file_name,
-            file_size: image.file_size,
-            url: format!("/images/{}/content", image.id),
+            file_size: image.file_size
         })
         .collect();
     Ok(Json(ImagesListResult { images }))
