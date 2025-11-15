@@ -1,30 +1,57 @@
 import { FileUploader } from '@/features/upload/components/file-uploader'
-import { useFileUploader } from './features/upload/hooks/use-file-uploader'
-import { FileBadgeList } from './features/upload/components/file-badge-list'
-import { useEffect } from 'react'
+import { FileBadge } from './features/upload/components/file-badge'
+import { useState } from 'react'
+import { uploadFile } from './features/upload/api'
+
+interface FileInfo {
+  id: string
+  file: File
+  status: 'idle' | 'loading' | 'success' | 'error'
+}
 
 function App() {
-  const { files, addFile, removeFile, uploadFile } = useFileUploader()
+  const [files, setFiles] = useState<FileInfo[]>([])
 
-  const handleAddFiles = async (files: FileList) => {
-    for (const file of files) {
-      addFile(file)
-      // 不能直接在此处调用 uploadFile(fileId)，因为 addFile 是异步的，会找不到fileId
+  const handleAddFiles = (file: FileList) => {
+    const newFiles: FileInfo[] = Array.from(file).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      status: 'loading'
+    }))
+    setFiles((prev) => [...prev, ...newFiles])
+    for (const file of newFiles) {
+      uploadFile(file.file)
+        .then(() => {
+          setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: 'success' } : f))
+        })
+        .catch(() => {
+          setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: 'error' } : f))
+        })
     }
   }
 
-  useEffect(() => {
-    for (const file of files) {
-      if (file.status === 'idle') {
-        uploadFile(file.id)
-      }
-    }
-  }, [files])
+  const handleClose = (id: string) => {
+    setFiles((prev) => prev.filter((file) => file.id !== id))
+  }
+
+  const getFileBadge = (file: FileInfo) => {
+    const closeable = file.status === 'error';
+    return (
+      <FileBadge
+        key={file.id}
+        text={file.file.name}
+        icon={file.status === 'loading' ? 'loading' : file.status === 'success' ? 'success' : file.status === 'error' ? 'error' : undefined}
+        onClose={closeable ? () => handleClose(file.id) : undefined}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4">
       <FileUploader onAddFiles={handleAddFiles} />
-      <FileBadgeList files={files} onCancel={removeFile} onClear={removeFile} />
+      <div className="flex gap-2 flex-wrap items-center">
+      {files.map(getFileBadge)}
+      </div>
     </div>
   )
 }

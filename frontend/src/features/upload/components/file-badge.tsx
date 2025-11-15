@@ -1,77 +1,43 @@
-import { useState } from 'react'
-import { Loader2, Check, AlertCircle, RotateCw, X, Trash2 } from 'lucide-react'
+import { Loader2, Check, AlertCircle, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { FileUploadStatus } from '../hooks/use-file-uploader'
 
 export interface FileBadgeProps {
   text: string
-  status: FileUploadStatus
-  onRetry?: () => void
-  onCancel?: () => void
-  onClear?: () => void
+  icon?: 'loading' | 'success' | 'error' | React.ReactNode
+  onClose?: () => void
 }
 
 export function FileBadge({
   text,
-  status,
-  onRetry,
-  onCancel,
-  onClear,
+  icon,
+  onClose,
 }: FileBadgeProps) {
-  const [isHovered, setIsHovered] = useState(false)
-
-  const cancelButton = (
+  const closeButton = onClose ? (
     <button
       type="button"
-      onClick={onCancel}
+      onClick={onClose}
       className="rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer pointer-events-auto"
-      title="取消"
     >
       <X className="w-3 h-3 text-foreground" />
     </button>
-  )
+  ) : null
 
-  const uploadingIcon = <Loader2 className="w-3 h-3 animate-spin" />
-
-  const successIcon = <Check className="w-3 h-3 text-green-500" />
-
-  const clearButton = (
-    <button
-      type="button"
-      onClick={onClear}
-      className="rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer pointer-events-auto"
-      title="清理"
-    >
-      <Trash2 className="w-3 h-3 text-foreground" />
-    </button>
-  )
-
-  const errorIcon = <AlertCircle className="w-3 h-3 text-red-500" />
-
-  const retryButton = (
-    <button
-      type="button"
-      onClick={onRetry}
-      className="rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer pointer-events-auto"
-      title="点击重试"
-    >
-      <RotateCw className="w-3 h-3 text-foreground" />
-    </button>
-  )
+  let iconComponent = null
+  if (icon === 'loading') {
+    iconComponent = <Loader2 className="w-3 h-3 animate-spin" />
+  } else if (icon === 'success') {
+    iconComponent = <Check className="w-3 h-3 text-green-500" />
+  } else if (icon === 'error') {
+    iconComponent = <AlertCircle className="w-3 h-3 text-red-500" />
+  } else {
+    iconComponent = icon
+  }
 
   return (
-    <Badge
-      variant="outline"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Badge variant="outline" className="flex items-center gap-2">
       <span className="max-w-[200px] truncate">{text}</span>
-
-      {status === 'idle' && cancelButton}
-      {status === 'loading' && uploadingIcon}
-      {status === 'success' &&
-        (onClear && isHovered ? clearButton : successIcon)}
-      {status === 'error' && (onRetry && isHovered ? retryButton : errorIcon)}
+      {iconComponent}
+      {closeButton}
     </Badge>
   )
 }

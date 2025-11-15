@@ -3,10 +3,10 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Multipart, Path, State},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap, header},
     response::{IntoResponse, Response},
 };
-use object_store::ObjectStore;
+use object_store::{HeaderValue, ObjectStore};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -157,5 +157,17 @@ pub async fn images_get_content_handler(
         .await
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-    Ok((StatusCode::NOT_IMPLEMENTED, "Not implemented").into_response())
+    let mut headers = HeaderMap::new();
+
+    headers.insert(
+        header::CONTENT_TYPE, 
+        HeaderValue::from_str(&image.mime_type).map_err(|e| AppError::InternalServerError(e.to_string()))?
+    );
+
+    headers.insert(
+        header::CONTENT_LENGTH,
+        HeaderValue::from(bytes.len() as u64),
+    );
+
+    Ok((headers, bytes).into_response())
 }
