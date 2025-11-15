@@ -15,11 +15,13 @@ use axum::{
 use object_store::{ObjectStore, local::LocalFileSystem};
 use sqlx::PgPool;
 use std::{fs, path::PathBuf, sync::Arc};
+use crate::app::auth::jwt::JwtService;
 
 #[derive(Clone)]
 pub struct AppState {
     store: Arc<dyn ObjectStore>,
     db: PgPool,
+    jwt_service: JwtService,
 }
 
 impl FromRef<AppState> for Arc<dyn ObjectStore> {
@@ -31,6 +33,12 @@ impl FromRef<AppState> for Arc<dyn ObjectStore> {
 impl FromRef<AppState> for PgPool {
     fn from_ref(state: &AppState) -> PgPool {
         state.db.clone()
+    }
+}
+
+impl FromRef<AppState> for JwtService {
+    fn from_ref(state: &AppState) -> JwtService {
+        state.jwt_service.clone()
     }
 }
 
@@ -71,9 +79,12 @@ impl AppConfig {
             self.database_url
         ));
 
+        let jwt_service = JwtService::new(self.jwt_secret.as_bytes().to_vec());
+
         let router = create_router(AppState {
             store,
             db: db.clone(),
+            jwt_service,
         });
 
         tracing::info!("Running server on {}", self.address);

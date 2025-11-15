@@ -5,6 +5,7 @@ pub struct AppConfig {
     pub address: String,
     pub storage_dir: String,
     pub database_url: String,
+    pub jwt_secret: String,
 }
 
 #[derive(Deserialize)]
@@ -43,10 +44,16 @@ impl AppConfig {
             .expect("DATABASE_URL is not set")
             .clone();
 
+        let jwt_secret = env_vars
+            .get("JWT_SECRET")
+            .expect("JWT_SECRET is not set, hint: you can use `openssl rand -hex 32` to generate a secret")
+            .clone();
+
         Self {
             address,
             storage_dir,
             database_url,
+            jwt_secret,
         }
     }
 }

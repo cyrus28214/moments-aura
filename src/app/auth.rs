@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use validator::{Validate, ValidationErrors};
 use crate::app::error::AppError;
+pub mod jwt;
+use jwt::JwtService;
 
 #[derive(Deserialize, Validate)]
 pub struct AuthRegisterPayload {
@@ -44,7 +46,8 @@ pub struct AuthRegisterResult {
  */
 pub async fn auth_register_handler(
     State(db): State<PgPool>,
-    Json(payload): Json<AuthRegisterPayload>,
+    State(jwt_service): State<JwtService>,
+    Json(payload): Json<AuthRegisterPayload>
 ) -> Result<Json<AuthRegisterResult>, AppError> {
     payload.validate()?;
 
@@ -79,10 +82,29 @@ pub async fn auth_register_handler(
     .fetch_one(&db)
     .await
     .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    
+    let user_id = user.id.to_string();
 
     let result = AuthRegisterResult {
-        user: user,
+        user,
     };
 
+    let token = jwt_service.generate_token(user_id).expect("Failed to generate token");
+
+    
+
     Ok(Json(result))
+}
+
+#[derive(Deserialize, Validate)]
+pub struct AuthLoginPayload {
+    #[validate(email)]
+    email: String,
+    #[validate(length(min = 6, max = 256))]
+    password: String,
+}
+
+#[derive(Serialize)]
+pub struct AuthLoginResult {
+    user: User,
 }
