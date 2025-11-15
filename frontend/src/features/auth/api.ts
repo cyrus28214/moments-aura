@@ -8,7 +8,20 @@ export interface AuthRegisterPayload {
 
 export interface AuthRegisterResult {
     user: {
-        id: string
+        id: number
+        name: string
+        email: string
+    }
+}
+
+export interface AuthLoginPayload {
+    email: string
+    password: string
+}
+
+export interface AuthLoginResult {
+    user: {
+        id: number
         name: string
         email: string
     }
@@ -16,5 +29,10 @@ export interface AuthRegisterResult {
 
 export const authRegister = async (payload: AuthRegisterPayload): Promise<AuthRegisterResult> => {
     const response = await apiClient.post('/auth/register', payload)
+    return response.data
+}
+
+export const authLogin = async (payload: AuthLoginPayload): Promise<AuthLoginResult> => {
+    const response = await apiClient.post('/auth/login', payload)
     return response.data
 }

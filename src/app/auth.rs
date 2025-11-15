@@ -63,14 +63,17 @@ pub async fn auth_register_handler(
         return Err(AppError::BadRequest("User name already registered".to_string()));
     }
 
-    sqlx::query!(
+    let user = sqlx::query!(
         r#"SELECT id FROM "user" WHERE email = $1"#,
         payload.email
     )
     .fetch_optional(&db)
     .await
-    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-    .ok_or(AppError::BadRequest("Email already registered".to_string()))?;
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    if user.is_some() {
+        return Err(AppError::BadRequest("Email already registered".to_string()));
+    }
 
     let user = sqlx::query_as!(
         User,

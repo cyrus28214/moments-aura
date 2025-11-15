@@ -55,6 +55,7 @@ fn create_router(app_state: AppState) -> Router {
             routing::get(images::images_get_content_handler),
         )
         .route("/auth/register", routing::post(auth::auth_register_handler))
+        .route("/auth/login", routing::post(auth::auth_login_handler))
         .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
         .with_state(app_state)
         .layer(TraceLayer::new_for_http())
