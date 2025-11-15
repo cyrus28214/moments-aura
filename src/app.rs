@@ -7,6 +7,7 @@ pub use config::AppConfig;
 use tower_http::trace::TraceLayer;
 
 use crate::infra::db;
+use crate::app::auth::JwtService;
 use axum::{
     Router,
     extract::{DefaultBodyLimit, FromRef},
@@ -15,7 +16,6 @@ use axum::{
 use object_store::{ObjectStore, local::LocalFileSystem};
 use sqlx::PgPool;
 use std::{fs, path::PathBuf, sync::Arc};
-use crate::app::auth::jwt::JwtService;
 
 #[derive(Clone)]
 pub struct AppState {

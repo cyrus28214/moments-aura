@@ -1,13 +1,13 @@
 use axum::{
     Json,
-    extract::State, http::{StatusCode}, response::{IntoResponse, Response},
+    extract::State, http::header, response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use validator::{Validate, ValidationErrors};
 use crate::app::error::AppError;
-pub mod jwt;
-use jwt::JwtService;
+mod jwt;
+pub use jwt::JwtService;
 
 #[derive(Deserialize, Validate)]
 pub struct AuthRegisterPayload {
@@ -47,8 +47,8 @@ pub struct AuthRegisterResult {
 pub async fn auth_register_handler(
     State(db): State<PgPool>,
     State(jwt_service): State<JwtService>,
-    Json(payload): Json<AuthRegisterPayload>
-) -> Result<Json<AuthRegisterResult>, AppError> {
+    Json(payload): Json<AuthRegisterPayload>,
+) -> Result<impl IntoResponse, AppError> {
     payload.validate()?;
 
     let user = sqlx::query!(
@@ -85,15 +85,15 @@ pub async fn auth_register_handler(
     
     let user_id = user.id.to_string();
 
+    let token = jwt_service.generate_token(user_id).expect("Failed to generate token");
+
+    let cookie_str = format!("token={}; Path=/; HttpOnly; Secure; SameSite=Strict", token);
+
     let result = AuthRegisterResult {
         user,
     };
 
-    let token = jwt_service.generate_token(user_id).expect("Failed to generate token");
-
-    
-
-    Ok(Json(result))
+    Ok(([(header::SET_COOKIE, cookie_str)], Json(result)))
 }
 
 #[derive(Deserialize, Validate)]
@@ -107,4 +107,35 @@ pub struct AuthLoginPayload {
 #[derive(Serialize)]
 pub struct AuthLoginResult {
     user: User,
+}
+
+pub async fn auth_login_handler(
+    State(db): State<PgPool>,
+    State(jwt_service): State<JwtService>,
+    Json(payload): Json<AuthLoginPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    payload.validate()?;
+
+    let user = sqlx::query_as!(
+        User,
+        r#"SELECT id, name, email FROM "user" WHERE email = $1 AND password = $2"#,
+        payload.email,
+        payload.password
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    .ok_or(AppError::BadRequest("Invalid email or password".to_string()))?;
+
+    let user_id = user.id.to_string();
+
+    let token = jwt_service.generate_token(user_id).expect("Failed to generate token");
+
+    let cookie_str = format!("token={}; Path=/; HttpOnly; Secure; SameSite=Strict", token);
+
+    let result = AuthLoginResult {
+        user,
+    };
+
+    Ok(([(header::SET_COOKIE, cookie_str)], Json(result)))
 }
