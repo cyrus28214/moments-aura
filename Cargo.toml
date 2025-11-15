@@ -20,6 +20,7 @@ tracing-panic = "0.1.2"
 tower-http = { version = "0.6.6", features = ["trace"] }
 thiserror = "2.0.17"
 uuid = { version = "1.18.1", features = ["v7"] }
+validator = { version = "0.20.0", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3.10"

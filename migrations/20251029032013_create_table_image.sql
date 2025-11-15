@@ -1,5 +1,5 @@
 -- Add migration script here
-CREATE TABLE IF NOT EXISTS image (
+CREATE TABLE IF NOT EXISTS "image" (
     "id" SERIAL PRIMARY KEY,
     "file_name" TEXT NOT NULL,
     "file_path" TEXT NOT NULL,
@@ -18,6 +18,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER set_updated_at
-BEFORE UPDATE ON image
+BEFORE UPDATE ON "image"
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();

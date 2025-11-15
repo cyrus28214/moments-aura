@@ -1,0 +1,88 @@
+use axum::{
+    Json,
+    extract::State, http::{StatusCode}, response::{IntoResponse, Response},
+};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use validator::{Validate, ValidationErrors};
+use crate::app::error::AppError;
+
+#[derive(Deserialize, Validate)]
+pub struct AuthRegisterPayload {
+    #[validate(length(min = 6, max = 256))]
+    name: String,
+    #[validate(email)]
+    email: String,
+    #[validate(length(min = 6, max = 256))]
+    password: String,
+}
+
+impl From<ValidationErrors> for AppError {
+    fn from(error: ValidationErrors) -> Self {
+        AppError::BadRequest(error.to_string())
+    }
+}
+
+#[derive(Serialize)]
+struct User {
+    id: i32,
+    name: String,
+    email: String
+}
+
+#[derive(Serialize)]
+pub struct AuthRegisterResult {
+    user: User,
+}
+
+/**
+ * Register a new user
+ * 
+ * 1. 用户名、密码要求6个字节以上，256个字节以内
+ * 2. email 为合法的邮箱地址
+ * 3. 如果用户名或邮箱已存在，则返回错误
+ */
+pub async fn auth_register_handler(
+    State(db): State<PgPool>,
+    Json(payload): Json<AuthRegisterPayload>,
+) -> Result<Json<AuthRegisterResult>, AppError> {
+    payload.validate()?;
+
+    let user = sqlx::query!(
+        r#"SELECT id FROM "user" WHERE name = $1"#,
+        payload.name
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    if user.is_some() {
+        return Err(AppError::BadRequest("User name already registered".to_string()));
+    }
+
+    sqlx::query!(
+        r#"SELECT id FROM "user" WHERE email = $1"#,
+        payload.email
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    .ok_or(AppError::BadRequest("Email already registered".to_string()))?;
+
+    let user = sqlx::query_as!(
+        User,
+        r#"INSERT INTO "user" (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email"#,
+        payload.name,
+        payload.email,
+        payload.password
+    )
+    .fetch_one(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let result = AuthRegisterResult {
+        user: user,
+    };
+
+    Ok(Json(result))
+}

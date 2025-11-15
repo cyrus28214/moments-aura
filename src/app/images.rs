@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Multipart, Path, State},
-    http::{StatusCode, HeaderMap, header},
+    http::{HeaderMap, header},
     response::{IntoResponse, Response},
 };
 use object_store::{HeaderValue, ObjectStore};

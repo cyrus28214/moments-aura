@@ -12,7 +12,7 @@ pub enum AppError {
     #[error("Internal server error: {0}")]
     InternalServerError(String),
     #[error("Image not found: {0}")]
-    ImageNotFound(u32),
+    ImageNotFound(u32)
 }
 
 impl IntoResponse for AppError {

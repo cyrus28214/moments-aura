@@ -1,6 +1,7 @@
 mod config;
 mod error;
 mod images;
+mod auth;
 
 pub use config::AppConfig;
 use tower_http::trace::TraceLayer;
@@ -45,6 +46,7 @@ fn create_router(app_state: AppState) -> Router {
             "/images/{id}/content",
             routing::get(images::images_get_content_handler),
         )
+        .route("/auth/register", routing::post(auth::auth_register_handler))
         .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
         .with_state(app_state)
         .layer(TraceLayer::new_for_http())
