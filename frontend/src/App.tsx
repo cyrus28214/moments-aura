@@ -4,6 +4,18 @@ import { useEffect, useState } from 'react'
 import { uploadFile } from './features/upload/api'
 import { ImageList } from './features/image/components/image-list'
 import { getImages, type Image } from './features/image/api'
+import { ImageGrid } from './features/image/components/image-grid'
+
+const sizes = [
+  [200, 300],
+  [150, 400],
+  [50, 200],
+  [100, 100],
+  [100, 200],
+  [200, 150],
+  [400, 450],
+  [2000, 500]
+];
 
 interface FileInfo {
   id: string
@@ -51,13 +63,22 @@ function App() {
     )
   }
 
+  // copy images 10 times
+  const repeatImages = images.flatMap((image) => Array(10).fill(image))
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-4">
-      <ImageList images={images} />
-      <FileUploader onAddFiles={handleAddFiles} />
+    <div className="flex flex-col h-screen gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        {repeatImages.map((image) => (
+          <div key={image.id} className="aspect-square overflow-hidden">
+            <img src={`/api/images/${image.id}/content`} alt={image.file_name} className="w-full h-full object-contain block" />
+          </div>
+        ))}
+      </div>
+      {/* <FileUploader onAddFiles={handleAddFiles} />
       <div className="flex gap-2 flex-wrap items-center">
       {files.map(getFileBadge)}
-      </div>
+      </div> */}
     </div>
   )
 }
