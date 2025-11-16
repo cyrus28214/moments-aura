@@ -54,6 +54,10 @@ fn create_router(app_state: AppState) -> Router {
             "/images/{id}/content",
             routing::get(images::images_get_content_handler),
         )
+        .route(
+            "/images/delete-batch",
+            routing::post(images::images_delete_batch_handler),
+        )
         .route("/auth/register", routing::post(auth::auth_register_handler))
         .route("/auth/login", routing::post(auth::auth_login_handler))
         .route("/auth/me", routing::get(auth::auth_me_handler))

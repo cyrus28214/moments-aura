@@ -7,7 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use object_store::{HeaderValue, ObjectStore};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::app::error::AppError;
@@ -168,4 +168,34 @@ pub async fn images_get_content_handler(
     );
 
     Ok((headers, bytes).into_response())
+}
+
+#[derive(Deserialize)]
+pub struct ImagesDeleteBatchPayload {
+    image_ids: Vec<i32>,
+}
+
+#[derive(Serialize)]
+pub struct ImagesDeleteBatchResult {
+    deleted_image_ids: Vec<i32>,
+}
+
+pub async fn images_delete_batch_handler(
+    State(db): State<PgPool>,
+    Json(payload): Json<ImagesDeleteBatchPayload>,
+) -> Result<Json<ImagesDeleteBatchResult>, AppError> {
+    let image_ids = payload.image_ids;
+    let result = sqlx::query!(
+        "DELETE FROM image WHERE id = ANY($1) RETURNING id",
+        image_ids.as_slice()
+    ).fetch_all(&db)
+    .await
+    .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    .into_iter().map(|row| row.id).collect::<Vec<_>>();
+
+    let result = ImagesDeleteBatchResult {
+        deleted_image_ids: result,
+    };
+
+    Ok(Json(result))
 }
