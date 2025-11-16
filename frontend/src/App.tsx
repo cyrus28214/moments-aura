@@ -6,13 +6,12 @@ import { ImageList } from './features/image/components/image-list'
 import { getImages, type Image } from './features/image/api'
 import { ImageGrid } from './features/image/components/image-grid'
 import { Slider } from './components/ui/slider'
-import { MinusIcon, PlusIcon, UploadIcon } from 'lucide-react'
+import { MinusIcon, PlusIcon, SquareCheckIcon, SquareMousePointerIcon, CloudUploadIcon, Layout, LayoutGridIcon } from 'lucide-react'
 import { Button } from './components/ui/button'
+import { cn } from './lib/utils'
 
-interface FileInfo {
-  id: string
-  file: File
-  status: 'idle' | 'loading' | 'success' | 'error'
+type ImageExtra = Image & {
+  selected: boolean
 }
 
 const GRID_COLS_MIN = 3;
@@ -20,47 +19,10 @@ const GRID_COLS_MAX = 10;
 const GRID_COLS_DEFAULT = 5;
 
 function App() {
-  const [files, setFiles] = useState<FileInfo[]>([])
-  const [images, setImages] = useState<Image[]>([])
+  const [images, setImages] = useState<ImageExtra[]>([])
   useEffect(() => {
-    getImages().then(setImages)
+    getImages().then((images) => setImages(images.map((image) => ({ ...image, selected: false }))))
   }, [])
-  const handleAddFiles = (file: FileList) => {
-    const newFiles: FileInfo[] = Array.from(file).map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      status: 'loading'
-    }))
-    setFiles((prev) => [...prev, ...newFiles])
-    for (const file of newFiles) {
-      uploadFile(file.file)
-        .then(() => {
-          setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: 'success' } : f))
-        })
-        .catch(() => {
-          setFiles((prev) => prev.map((f) => f.id === file.id ? { ...f, status: 'error' } : f))
-        })
-    }
-  }
-
-  const handleClose = (id: string) => {
-    setFiles((prev) => prev.filter((file) => file.id !== id))
-  }
-
-  const getFileBadge = (file: FileInfo) => {
-    const closeable = file.status === 'error';
-    return (
-      <FileBadge
-        key={file.id}
-        text={file.file.name}
-        icon={file.status === 'loading' ? 'loading' : file.status === 'success' ? 'success' : file.status === 'error' ? 'error' : undefined}
-        onClose={closeable ? () => handleClose(file.id) : undefined}
-      />
-    )
-  }
-
-  // copy images 10 times
-  const repeatImages = images.flatMap((image) => Array(10).fill(image))
 
   const [gridCols, setGridCols] = useState<number>(GRID_COLS_DEFAULT);
 
@@ -85,9 +47,47 @@ function App() {
     fileInputRef.current?.click();
   }
 
+  const [selectMode, setSelectMode] = useState<boolean>(false);
+  const selectAll = images.every((image) => image.selected);
+
+  const clearSelection = () => {
+    setImages(images.map((image) => ({ ...image, selected: false })));
+  }
+
+  const handleSelectionClick = () => {
+    setSelectMode(!selectMode);
+  }
+
+  const handleImageClick = (imageId: string) => {
+    if (!selectMode) return;
+    setImages(images.map((image) => {
+      if (image.id !== imageId) {
+        return image
+      }
+      return { ...image, selected: !image.selected };
+    }));
+    console.log(images);
+  }
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setImages(images.map((image) => ({ ...image, selected: false })));
+    } else {
+      setImages(images.map((image) => ({ ...image, selected: true })));
+    }
+  }
+
+  const [coverMode, setCoverMode] = useState<boolean>(false);
+  const handleCoverModeClick = () => {
+    setCoverMode(!coverMode);
+  }
+
   return (
     <div className="flex flex-col h-screen gap-4">
       <div className="flex items-center gap-2 p-2">
+        <Button variant="ghost" className={cn("size-7 cursor-pointer", coverMode && "text-primary-foreground hover:text-primary-foreground")} onClick={handleCoverModeClick}>
+          <LayoutGridIcon />
+        </Button>
         <div className="flex items-center gap-1">
           {/* click minus icon, zoom out images, increase grid cols */}
           <Button variant="ghost" className="size-7 cursor-pointer" onClick={handleIncreaseGridCols}>
@@ -109,14 +109,37 @@ function App() {
           </Button>
         </div>
         <Button variant="ghost" className="size-7 cursor-pointer" onClick={handleFileInputClick}>
-          <UploadIcon />
+          <CloudUploadIcon />
           <input type="file" onChange={handleUploadFiles} className="hidden" multiple accept="image/*" ref={fileInputRef} />
         </Button>
+        <Button variant="ghost" className={cn("size-7 cursor-pointer", selectMode && "text-primary-foreground hover:text-primary-foreground")} onClick={handleSelectionClick}>
+          <SquareMousePointerIcon />
+        </Button>
+        {selectMode && (<>
+          <p className="text-sm">
+            {images.filter((image) => image.selected).length} / {images.length}
+          </p>
+          <Button variant="ghost" className={cn("size-7 cursor-pointer", selectAll && "text-primary-foreground hover:text-primary-foreground")} onClick={handleSelectAll}>
+            <SquareCheckIcon />
+          </Button>
+        </>)}
       </div>
       <div className="grid gap-6 p-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
-        {repeatImages.map((image) => (
-          <div className="aspect-square overflow-hidden">
-            <img src={`/api/images/${image.id}/content`} alt={image.file_name} className="w-full h-full object-contain block" />
+        {images.map((image) => (
+          <div 
+            key={image.id}
+            className="relative aspect-square" 
+            >
+            <img 
+              src={`/api/images/${image.id}/content`} 
+              alt={image.file_name} 
+              onClick={() => handleImageClick(image.id)}
+              className={cn(
+                "block w-full h-full cursor-pointer",
+                coverMode ? "object-cover" : "object-contain",
+                selectMode && (image.selected || selectAll) && "ring-2 ring-primary-foreground"
+              )}
+            />
           </div>
         ))}
       </div>
