@@ -1,27 +1,23 @@
 import { FileUploader } from '@/features/upload/components/file-uploader'
 import { FileBadge } from './features/upload/components/file-badge'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { uploadFile } from './features/upload/api'
 import { ImageList } from './features/image/components/image-list'
 import { getImages, type Image } from './features/image/api'
 import { ImageGrid } from './features/image/components/image-grid'
-
-const sizes = [
-  [200, 300],
-  [150, 400],
-  [50, 200],
-  [100, 100],
-  [100, 200],
-  [200, 150],
-  [400, 450],
-  [2000, 500]
-];
+import { Slider } from './components/ui/slider'
+import { MinusIcon, PlusIcon, UploadIcon } from 'lucide-react'
+import { Button } from './components/ui/button'
 
 interface FileInfo {
   id: string
   file: File
   status: 'idle' | 'loading' | 'success' | 'error'
 }
+
+const GRID_COLS_MIN = 3;
+const GRID_COLS_MAX = 10;
+const GRID_COLS_DEFAULT = 5;
 
 function App() {
   const [files, setFiles] = useState<FileInfo[]>([])
@@ -66,11 +62,60 @@ function App() {
   // copy images 10 times
   const repeatImages = images.flatMap((image) => Array(10).fill(image))
 
+  const [gridCols, setGridCols] = useState<number>(GRID_COLS_DEFAULT);
+
+  const handleDecreaseGridCols = () => {
+    setGridCols(Math.max(GRID_COLS_MIN, gridCols - 1));
+  }
+
+  const handleIncreaseGridCols = () => {
+    setGridCols(Math.min(GRID_COLS_MAX, gridCols + 1));
+  }
+
+  const handleUploadFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    for (const file of e.target.files) {
+      uploadFile(file)
+    }
+  }
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileInputClick = () => {
+    fileInputRef.current?.click();
+  }
+
   return (
     <div className="flex flex-col h-screen gap-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="flex items-center gap-2 p-2">
+        <div className="flex items-center gap-1">
+          {/* click minus icon, zoom out images, increase grid cols */}
+          <Button variant="ghost" className="size-7 cursor-pointer" onClick={handleIncreaseGridCols}>
+            <MinusIcon />
+          </Button>
+          <Slider
+            value={[GRID_COLS_MAX + GRID_COLS_MIN - gridCols]}
+            onValueChange={(value) => {
+              setGridCols(GRID_COLS_MAX + GRID_COLS_MIN - value[0]);
+            }}
+            min={GRID_COLS_MIN}
+            max={GRID_COLS_MAX}
+            step={1}
+            className="w-24"
+          />  
+          {/* click plus icon, zoom in images, decrease grid cols */}
+          <Button variant="ghost" className="size-7 cursor-pointer" onClick={handleDecreaseGridCols}>
+            <PlusIcon />
+          </Button>
+        </div>
+        <Button variant="ghost" className="size-7 cursor-pointer" onClick={handleFileInputClick}>
+          <UploadIcon />
+          <input type="file" onChange={handleUploadFiles} className="hidden" multiple accept="image/*" ref={fileInputRef} />
+        </Button>
+      </div>
+      <div className="grid gap-6 p-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
         {repeatImages.map((image) => (
-          <div key={image.id} className="aspect-square overflow-hidden">
+          <div className="aspect-square overflow-hidden">
             <img src={`/api/images/${image.id}/content`} alt={image.file_name} className="w-full h-full object-contain block" />
           </div>
         ))}
