@@ -185,16 +185,15 @@ pub async fn images_delete_batch_handler(
     Json(payload): Json<ImagesDeleteBatchPayload>,
 ) -> Result<Json<ImagesDeleteBatchResult>, AppError> {
     let image_ids = payload.image_ids;
-    let result = sqlx::query!(
-        "DELETE FROM image WHERE id = ANY($1) RETURNING id",
-        image_ids.as_slice()
-    ).fetch_all(&db)
-    .await
-    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-    .into_iter().map(|row| row.id).collect::<Vec<_>>();
 
     let result = ImagesDeleteBatchResult {
-        deleted_image_ids: result,
+        deleted_image_ids: sqlx::query!(
+            "DELETE FROM image WHERE id = ANY($1) RETURNING id",
+            image_ids.as_slice()
+        ).fetch_all(&db)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?
+        .into_iter().map(|row| row.id).collect()
     };
 
     Ok(Json(result))

@@ -56,13 +56,13 @@ code {
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --background: #1C1C1C;
   --foreground: #FAFAFA;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover: #1C1C1C;
+  --popover-foreground: #FAFAFA;
   --primary: #D9D9D9;
   --primary-foreground: #0099FF;
   --secondary: oklch(0.97 0 0);
@@ -71,8 +71,8 @@ code {
   --muted-foreground: #A1A1A1;
   --accent: #3f3f3f;
   --accent-foreground: #FAFAFA;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
+  --destructive: 	#ff3636;
+  --border: oklch(1 0 0 / 10%);
   --input: oklch(0.922 0 0);
   --ring: #CCCCCC;
   --chart-1: oklch(0.646 0.222 41.116);
