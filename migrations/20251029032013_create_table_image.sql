@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE IF NOT EXISTS "image" (
     "id" SERIAL PRIMARY KEY,
     "file_name" TEXT NOT NULL,

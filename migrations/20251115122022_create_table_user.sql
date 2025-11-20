@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE IF NOT EXISTS "user" (
     "id" SERIAL PRIMARY KEY,
     "name" TEXT NOT NULL UNIQUE,
