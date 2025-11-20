@@ -26,8 +26,14 @@ const GRID_COLS_DEFAULT = 5;
 
 function App() {
   const [images, setImages] = useState<ImageExtra[]>([])
+
+  const fetchImages = async () => {
+    const images = await getImages();
+    setImages(images.map((image) => ({ ...image, selected: false })));
+  }
+
   useEffect(() => {
-    getImages().then((images) => setImages(images.map((image) => ({ ...image, selected: false }))))
+    fetchImages();
   }, [])
 
   const [gridCols, setGridCols] = useState<number>(GRID_COLS_DEFAULT);
@@ -42,9 +48,14 @@ function App() {
 
   const handleUploadFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    for (const file of e.target.files) {
-      uploadFile(file)
-    }
+    const tasks = Promise.all(Array.from(e.target.files).map(file => uploadFile(file)));
+    tasks.then(() => {
+      toast.success("上传成功");
+      fetchImages();
+    }).catch((error) => {
+      toast.error("上传失败");
+      console.error(error);
+    });
   }
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,10 +66,6 @@ function App() {
 
   const [selectMode, setSelectMode] = useState<boolean>(false);
   const selectAll = images.every((image) => image.selected);
-
-  const clearSelection = () => {
-    setImages(images.map((image) => ({ ...image, selected: false })));
-  }
 
   const handleSelectionClick = () => {
     setSelectMode(!selectMode);
