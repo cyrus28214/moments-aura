@@ -7,7 +7,9 @@ use sqlx::PgPool;
 use validator::{Validate, ValidationErrors};
 use crate::app::error::AppError;
 mod jwt;
+mod extractor;
 pub use jwt::JwtService;
+pub use extractor::AuthUser;
 
 #[derive(Deserialize, Validate)]
 pub struct AuthRegisterPayload {
@@ -26,7 +28,7 @@ impl From<ValidationErrors> for AppError {
 }
 
 #[derive(Serialize)]
-struct User {
+pub struct User {
     id: i32,
     name: String,
     email: String

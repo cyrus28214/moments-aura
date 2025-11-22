@@ -9,6 +9,8 @@ use axum::{
 use object_store::{HeaderValue, ObjectStore};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use crate::app::auth::AuthUser;
+
 
 use crate::app::error::AppError;
 
@@ -114,8 +116,13 @@ pub struct ImagesListResult {
 
 pub async fn images_list_handler(
     State(db): State<PgPool>,
+    AuthUser { user_id }: AuthUser,
 ) -> Result<Json<ImagesListResult>, AppError> {
-    let images = sqlx::query!("SELECT id, file_name, file_size FROM image")
+    let user_id = match user_id {
+        Some(id) => id,
+        None => return Err(AppError::Unauthorized("Unauthorized".to_string())),
+    };
+    let images = sqlx::query!("SELECT id, file_name, file_size FROM image WHERE user_id = $1", user_id)
         .fetch_all(&db)
         .await
         .map_err(|e| AppError::InternalServerError(e.to_string()))?
@@ -133,10 +140,16 @@ pub async fn images_get_content_handler(
     State(store): State<Arc<dyn ObjectStore>>,
     State(db): State<PgPool>,
     Path(id): Path<u32>,
+    AuthUser { user_id }: AuthUser,
 ) -> Result<Response, AppError> {
+    let user_id = match user_id {
+        Some(id) => id,
+        None => return Err(AppError::Unauthorized("Unauthorized".to_string())),
+    };
     let image = sqlx::query!(
-        "SELECT file_path, mime_type FROM image WHERE id = $1",
-        id as i32
+        "SELECT file_path, mime_type FROM image WHERE id = $1 AND user_id = $2",
+        id as i32,
+        user_id
     )
     .fetch_optional(&db)
     .await
@@ -182,14 +195,20 @@ pub struct ImagesDeleteBatchResult {
 
 pub async fn images_delete_batch_handler(
     State(db): State<PgPool>,
+    AuthUser { user_id }: AuthUser,
     Json(payload): Json<ImagesDeleteBatchPayload>,
 ) -> Result<Json<ImagesDeleteBatchResult>, AppError> {
+    let user_id = match user_id {
+        Some(id) => id,
+        None => return Err(AppError::Unauthorized("Unauthorized".to_string())),
+    };
     let image_ids = payload.image_ids;
 
     let result = ImagesDeleteBatchResult {
         deleted_image_ids: sqlx::query!(
-            "DELETE FROM image WHERE id = ANY($1) RETURNING id",
-            image_ids.as_slice()
+            "DELETE FROM image WHERE id = ANY($1) AND user_id = $2 RETURNING id",
+            image_ids.as_slice(),
+            user_id
         ).fetch_all(&db)
         .await
         .map_err(|e| AppError::InternalServerError(e.to_string()))?

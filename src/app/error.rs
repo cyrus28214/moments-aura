@@ -12,7 +12,9 @@ pub enum AppError {
     #[error("Internal server error: {0}")]
     InternalServerError(String),
     #[error("Image not found: {0}")]
-    ImageNotFound(u32)
+    ImageNotFound(u32),
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl IntoResponse for AppError {
@@ -33,6 +35,10 @@ impl IntoResponse for AppError {
             Self::ImageNotFound(id) => {
                 tracing::warn!(image_id = ?id, "Image not found");
                 (StatusCode::NOT_FOUND, format!("Image not found: {}", id)).into_response()
+            }
+            Self::Unauthorized(e) => {
+                tracing::warn!(error = ?e, "{}", e);
+                (StatusCode::UNAUTHORIZED, e).into_response()
             }
         }
     }
