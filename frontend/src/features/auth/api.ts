@@ -12,6 +12,7 @@ export interface AuthRegisterResult {
         name: string
         email: string
     }
+    token: string
 }
 
 export interface AuthLoginPayload {
@@ -25,16 +26,27 @@ export interface AuthLoginResult {
         name: string
         email: string
     }
+token: string
 }
 
 export const authRegister = async (payload: AuthRegisterPayload): Promise<AuthRegisterResult> => {
     const response = await apiClient.post('/auth/register', payload)
-    return response.data
+    const data = response.data
+    // 保存token到localStorage
+    if (data.token) {
+        localStorage.setItem('token', data.token)
+    }
+    return data
 }
 
 export const authLogin = async (payload: AuthLoginPayload): Promise<AuthLoginResult> => {
     const response = await apiClient.post('/auth/login', payload)
-    return response.data
+    const data = response.data
+    // 保存token到localStorage
+    if (data.token) {
+        localStorage.setItem('token', data.token)
+    }
+    return data
 }
 
 export interface AuthMeResult {
@@ -45,7 +57,11 @@ export interface AuthMeResult {
     }
 }
 
-export const authMe = async (): Promise<AuthMeResult> => {
-    const response = await apiClient.get('/auth/me')
+export const authMe = async (token: string): Promise<AuthMeResult> => {
+    const response = await apiClient.get('/auth/me', {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
     return response.data
 }

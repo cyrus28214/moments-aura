@@ -1,13 +1,13 @@
 mod config;
-mod error;
 mod images;
 mod auth;
+mod users;
 
 pub use config::AppConfig;
 use tower_http::trace::TraceLayer;
 
 use crate::infra::db;
-use crate::app::auth::JwtService;
+use crate::infra::crypto::JwtService;
 use axum::{
     Router,
     extract::{DefaultBodyLimit, FromRef},
@@ -47,20 +47,20 @@ fn create_router(app_state: AppState) -> Router {
         .route("/ping", routing::get(ping_handler))
         .route(
             "/images/upload",
-            routing::post(images::images_upload_handler),
+            routing::post(images::upload_images_handler),
         )
-        .route("/images/list", routing::get(images::images_list_handler))
+        .route("/images/list", routing::get(images::list_images_handler))
         .route(
             "/images/{id}/content",
-            routing::get(images::images_get_content_handler),
+            routing::get(images::get_image_content_handler),
         )
         .route(
             "/images/delete-batch",
-            routing::post(images::images_delete_batch_handler),
+            routing::post(images::delete_images_handler),
         )
-        .route("/auth/register", routing::post(auth::auth_register_handler))
-        .route("/auth/login", routing::post(auth::auth_login_handler))
-        .route("/auth/me", routing::get(auth::auth_me_handler))
+        .route("/auth/register", routing::post(auth::register_handler))
+        .route("/auth/login", routing::post(auth::login_handler))
+        .route("/users/me", routing::get(users::get_own_profile_handler))
         .route_layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB
         .with_state(app_state)
         .layer(TraceLayer::new_for_http())
@@ -85,7 +85,7 @@ impl AppConfig {
             self.database_url
         ));
 
-        let jwt_service = JwtService::new(self.jwt_secret.as_bytes().to_vec());
+        let jwt_service = JwtService::new(self.jwt_secret.as_bytes());
 
         let router = create_router(AppState {
             store,
