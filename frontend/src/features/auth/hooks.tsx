@@ -1,94 +1,81 @@
-import { createContext, useState } from "react"
-import { useLocalStorage } from "@/lib/use-local-storage"
-import { authLogin, authMe, authRegister, type AuthMeResult } from "./api"
-import { useEffect } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { get_own_profile, login, type User } from "@/api";
+import { useLocalStorage } from "@/lib/use-local-storage";
 
-type User = AuthMeResult["user"]
-  
 type AuthContextType = {
-    user: User | null,
-    token: string | null,
-    isLoading: boolean,
-    refreshUser: () => Promise<void>,
-    logout: () => void,
-    login: (email: string, password: string) => Promise<void>
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  refreshAuth: (token: string | null) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+};
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useLocalStorage<string | null>('token', null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const authProvider = ({ children }: { children: React.ReactNode }) => {
-    const [status, setStatus] = useState<AuthContextType["status"]>("loading")
-    const [token, setToken] = useLocalStorage<string | null>("token", null)
-    const [user, setUser] = useState<User | null>(null)
-    const initAuth = async () => {
-        if (!token) {
-            setStatus("unauthenticated")
-            return
-        }
-        try {
-            const { user } = await authMe(token)
-            setUser(user)
-            setStatus("authenticated")
-        } catch (error) {
-            console.error(error)
-            setUser(null)
-            setToken(null)
-            setStatus("unauthenticated")
-        }
+  const refreshAuthHandler = useCallback(async (token: string | null) => {
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
     }
-
-    const refreshUser = async () => {
-        try {
-            const { user } = await authMe(token!)
-            setUser(user)
-        } catch (error) {
-            console.error(error)
-            setUser(null)
-        }
+    try {
+      setIsLoading(true);
+      const data = await get_own_profile(token);
+      setUser(data.user);
+    } catch (error) {
+      console.error("Auth error:", error);
+      setToken(null);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
+  }, [token, setToken]);
 
-    const logout = () => {
-        setUser(null)
-        setToken(null)
-        setStatus("unauthenticated")
+  useEffect(() => {
+    refreshAuthHandler(token);
+  }, [refreshAuthHandler, token]);
+
+  const loginHandler = async (email: string, password: string) => {
+    try {
+      const result = await login({ email, password });
+      setToken(result.token);
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
     }
+  };
 
-    const login = async (email: string, password: string) => {
-        setStatus("loading")
-        try {
-            const { token } = await authLogin({ email, password })
-            setToken(token)
-            await refreshUser()
-            setStatus("authenticated")
-        } catch (error) {
-            console.error(error)
-            setStatus("unauthenticated")
-        }
-    }
+  const logoutHandler = useCallback(() => {
+    setToken(null);
+    setUser(null);
+  }, [setToken]);
 
-    const register = async (name: string, email: string, password: string) => {
-        setStatus("loading")
-        try {
-            const { token } = await authRegister({ name, email, password })
-            setToken(token)
-            await refreshUser()
-            setStatus("authenticated")
-        } catch (error) {
-            console.error(error)
-            setStatus("unauthenticated")
-        }
-    }
+  const contextValue = useMemo(() => ({
+    user,
+    token,
+    isLoading,
+    login: loginHandler,
+    logout: logoutHandler,
+    refreshAuth: refreshAuthHandler
+  }), [user, token, isLoading, loginHandler, logoutHandler, refreshAuthHandler]);
 
-    let context: AuthContextType;
-
-    if (status === "loading") {
-        context = {
-            status: "loading",
-        }
-    } else if (status === "authenticated") {
-    }
-
-    useEffect(() => {
-        initAuth()
-    }, [token])
-}           
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};

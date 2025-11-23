@@ -6,15 +6,18 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Link,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
 
-import App from './App.tsx'
-import PlaygroundPage from './features/playground/page.tsx'
+import HomePage from './features/home/home-page.tsx'
+import DashboardPage from './features/dashboard/dashboard-page.tsx'
+import LoginPage from './features/auth/login-page.tsx'
+import RegisterPage from './features/auth/register-page.tsx'
+import { AuthProvider } from './features/auth/hooks.tsx'
+import { ThemeProvider } from './features/theme/hooks.tsx'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -37,16 +40,28 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: App,
+  component: HomePage,
 })
 
-const playgroundRoute = createRoute({
+const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/playground',
-  component: PlaygroundPage,
+  path: '/login',
+  component: LoginPage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, playgroundRoute])
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/register',
+  component: RegisterPage,
+})
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dashboard',
+  component: DashboardPage,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, registerRoute, dashboardRoute])
 
 const router = createRouter({
   routeTree,
@@ -68,7 +83,11 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ThemeProvider>
     </StrictMode>,
   )
 }
