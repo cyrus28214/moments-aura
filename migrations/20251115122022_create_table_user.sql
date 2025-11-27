@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     "updated_at" TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TRIGGER set_updated_at
+CREATE TRIGGER set_updated_at_column
 BEFORE UPDATE ON "user"
 FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
+EXECUTE FUNCTION set_updated_at_column();

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "image" (
     "updated_at" TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE OR REPLACE FUNCTION set_updated_at()
+CREATE OR REPLACE FUNCTION set_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -16,7 +16,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_updated_at
+CREATE TRIGGER set_updated_at_column
 BEFORE UPDATE ON "image"
 FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
+EXECUTE FUNCTION set_updated_at_column();
