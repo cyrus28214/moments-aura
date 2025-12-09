@@ -1,12 +1,13 @@
+pub mod jwt;
 use axum::{
-    Json, 
-    extract::{State, FromRequestParts, FromRef},
-    http::{request::Parts, header, StatusCode},
-    response::{IntoResponse, Response}
+    Json,
+    extract::{FromRef, FromRequestParts, State},
+    http::{StatusCode, header, request::Parts},
+    response::{IntoResponse, Response},
 };
-use serde_json::json;
-use crate::infra::crypto::JwtService;
+pub use jwt::JwtService;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::PgPool;
 use validator::Validate;
 
@@ -16,17 +17,32 @@ pub struct AuthUser {
 }
 
 impl<S> FromRequestParts<S> for AuthUser
-where S: Send + Sync, JwtService: FromRef<S> {
+where
+    S: Send + Sync,
+    JwtService: FromRef<S>,
+{
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let token = parts.headers
+        let token = parts
+            .headers
             .get(header::AUTHORIZATION)
-            .ok_or((StatusCode::UNAUTHORIZED, "Authorization header not found".to_string()))?
+            .ok_or((
+                StatusCode::UNAUTHORIZED,
+                "Authorization header not found".to_string(),
+            ))?
             .to_str()
-            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid authorization header".to_string()))?
+            .map_err(|_| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Invalid authorization header".to_string(),
+                )
+            })?
             .strip_prefix("Bearer ")
-            .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization format".to_string()))?
+            .ok_or((
+                StatusCode::UNAUTHORIZED,
+                "Invalid authorization format".to_string(),
+            ))?
             .trim();
 
         let jwt_service = JwtService::from_ref(state);
@@ -37,24 +53,38 @@ where S: Send + Sync, JwtService: FromRef<S> {
                 tracing::warn!("Invalid token");
                 (StatusCode::UNAUTHORIZED, "Invalid token".to_string())
             })?
-            .sub.parse::<i32>()
+            .sub
+            .parse::<i32>()
             .map_err(|_| {
                 tracing::warn!("Invalid user ID in token");
-                (StatusCode::UNAUTHORIZED, "Invalid user ID in token".to_string())
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Invalid user ID in token".to_string(),
+                )
             })?;
 
         Ok(AuthUser { user_id })
     }
 }
 
-
 #[derive(Deserialize, Validate)]
 pub struct RegisterPayload {
-    #[validate(length(min = 6, max = 256, message = "Name must be between 6 and 256 characters"))]
+    #[validate(length(
+        min = 6,
+        max = 256,
+        message = "Name must be between 6 and 256 characters"
+    ))]
     name: String,
-    #[validate(email(message = "Invalid email address"), length(max = 256, message = "Email must be less than 256 characters"))]
+    #[validate(
+        email(message = "Invalid email address"),
+        length(max = 256, message = "Email must be less than 256 characters")
+    )]
     email: String,
-    #[validate(length(min = 6, max = 256, message = "Password must be between 6 and 256 characters"))]
+    #[validate(length(
+        min = 6,
+        max = 256,
+        message = "Password must be between 6 and 256 characters"
+    ))]
     password: String,
 }
 
@@ -86,7 +116,10 @@ pub async fn register_handler(
     .await
     .map_err(|e| {
         tracing::error!(error = ?e, "Failed to fetch user");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
     })?;
 
     if user.is_some() {
@@ -113,13 +146,17 @@ pub async fn register_handler(
         .sign(user_id, time::Duration::days(2))
         .map_err(|e| {
             tracing::error!(error = ?e, "Failed to sign token");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            )
         })?;
 
     Ok(Json(json!({
         "user": user,
         "token": token
-    })).into_response())
+    }))
+    .into_response())
 }
 
 #[derive(Deserialize, Validate)]
@@ -143,9 +180,15 @@ pub async fn login_handler(
     .await
     .map_err(|e| {
         tracing::error!(error = ?e, "Failed to fetch user");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
     })?
-    .ok_or((StatusCode::BAD_REQUEST, "Invalid email or password".to_string()))?;
+    .ok_or((
+        StatusCode::BAD_REQUEST,
+        "Invalid email or password".to_string(),
+    ))?;
 
     let user_id = user.id.to_string();
 
@@ -153,11 +196,15 @@ pub async fn login_handler(
         .sign(user_id, time::Duration::days(2))
         .map_err(|e| {
             tracing::error!(error = ?e, "Failed to sign token");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            )
         })?;
 
     Ok(Json(json!({
         "user": user,
         "token": token
-    })).into_response())
+    }))
+    .into_response())
 }

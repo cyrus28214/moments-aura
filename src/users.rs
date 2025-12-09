@@ -1,24 +1,19 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json
-};
-use sqlx::postgres::PgPool;
-use crate::app::auth::AuthUser;
+use crate::auth::AuthUser;
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::Serialize;
 use serde_json::json;
+use sqlx::postgres::PgPool;
 
 #[derive(Serialize)]
 pub struct User {
     id: i32,
     name: String,
-    email: String
+    email: String,
 }
 
 pub async fn get_own_profile_handler(
     State(db): State<PgPool>,
-    AuthUser{ user_id }: AuthUser
+    AuthUser { user_id }: AuthUser,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let user = sqlx::query_as!(
         User,
@@ -29,7 +24,10 @@ pub async fn get_own_profile_handler(
     .await
     .map_err(|e| {
         tracing::error!(error = ?e, "Failed to fetch user");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
     })?
     .ok_or_else(|| (StatusCode::NOT_FOUND, "User not found".to_string()))?;
 
