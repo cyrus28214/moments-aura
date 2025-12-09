@@ -1,20 +1,18 @@
 pub mod jwt;
+use std::str::FromStr;
+
 use axum::{
     Json,
     extract::{FromRef, FromRequestParts, State},
-    http::{StatusCode, header, request::Parts},
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
 pub use jwt::JwtService;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
+use uuid::Uuid;
 use validator::Validate;
-
-#[derive(Debug, Clone)]
-pub struct AuthUser {
-    pub user_id: i32,
-}
 
 impl<S> FromRequestParts<S> for AuthUser
 where
@@ -22,8 +20,10 @@ where
     JwtService: FromRef<S>,
 {
     type Rejection = (StatusCode, String);
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
         let token = parts
             .headers
             .get(header::AUTHORIZATION)
@@ -47,24 +47,18 @@ where
 
         let jwt_service = JwtService::from_ref(state);
 
-        let user_id = jwt_service
-            .verify(token)
-            .map_err(|_| {
-                tracing::warn!("Invalid token");
-                (StatusCode::UNAUTHORIZED, "Invalid token".to_string())
-            })?
-            .sub
-            .parse::<i32>()
-            .map_err(|_| {
-                tracing::warn!("Invalid user ID in token");
-                (
-                    StatusCode::UNAUTHORIZED,
-                    "Invalid user ID in token".to_string(),
-                )
-            })?;
+        let user_id = jwt_service.verify(token)?.sub;
+
+        let user_id = Uuid::from_str(&user_id)
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid user id".to_string()))?;
 
         Ok(AuthUser { user_id })
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct AuthUser {
+    pub user_id: Uuid,
 }
 
 #[derive(Deserialize, Validate)]
@@ -86,13 +80,6 @@ pub struct RegisterPayload {
         message = "Password must be between 6 and 256 characters"
     ))]
     password: String,
-}
-
-#[derive(Serialize)]
-pub struct User {
-    id: i32,
-    name: String,
-    email: String,
 }
 
 pub async fn register_handler(
@@ -126,9 +113,9 @@ pub async fn register_handler(
         return Err((StatusCode::CONFLICT, "User already exists".to_string()));
     }
 
-    let user = sqlx::query_as!(
-        User,
-        r#"INSERT INTO "user" (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email"#,
+    let user = sqlx::query!(
+        r#"INSERT INTO "user" (id, name, email, password) VALUES ($1, $2, $3, $4) RETURNING id, name, email"#,
+        uuid::Uuid::now_v7(),
         payload.name,
         payload.email,
         payload.password
@@ -140,20 +127,16 @@ pub async fn register_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
     })?;
 
-    let user_id = user.id.to_string();
+    let user_id_str = user.id.to_string();
 
-    let token = jwt_service
-        .sign(user_id, time::Duration::days(2))
-        .map_err(|e| {
-            tracing::error!(error = ?e, "Failed to sign token");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error".to_string(),
-            )
-        })?;
+    let token = jwt_service.sign(user_id_str.clone(), time::Duration::days(2))?;
 
     Ok(Json(json!({
-        "user": user,
+        "user": {
+            "id": user_id_str,
+            "name": user.name,
+            "email": user.email,
+        },
         "token": token
     }))
     .into_response())
@@ -170,8 +153,7 @@ pub async fn login_handler(
     State(jwt_service): State<JwtService>,
     Json(payload): Json<LoginPayload>,
 ) -> Result<Response, (StatusCode, String)> {
-    let user = sqlx::query_as!(
-        User,
+    let user = sqlx::query!(
         r#"SELECT id, name, email FROM "user" WHERE email = $1 AND password = $2"#,
         payload.email,
         payload.password
@@ -190,20 +172,16 @@ pub async fn login_handler(
         "Invalid email or password".to_string(),
     ))?;
 
-    let user_id = user.id.to_string();
+    let user_id_str = user.id.to_string();
 
-    let token = jwt_service
-        .sign(user_id, time::Duration::days(2))
-        .map_err(|e| {
-            tracing::error!(error = ?e, "Failed to sign token");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error".to_string(),
-            )
-        })?;
+    let token = jwt_service.sign(user_id_str.clone(), time::Duration::days(2))?;
 
     Ok(Json(json!({
-        "user": user,
+        "user": {
+            "id": user_id_str,
+            "name": user.name,
+            "email": user.email,
+        },
         "token": token
     }))
     .into_response())

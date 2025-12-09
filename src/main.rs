@@ -1,5 +1,10 @@
-use moments_aura::{auth, config, db, images, users};
-use std::path::Path;
+use moments_aura::{
+    auth, config,
+    infra::{self, storage::LocalStorage},
+    photos, users,
+};
+use reverse_geocoder::ReverseGeocoder;
+use std::{path::Path, sync::Arc};
 use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -9,20 +14,20 @@ use axum::{
     extract::{DefaultBodyLimit, FromRef},
     routing,
 };
-use object_store::{ObjectStore, local::LocalFileSystem};
 use sqlx::PgPool;
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{fs, path::PathBuf};
 
 #[derive(Clone)]
 pub struct AppState {
-    store: Arc<dyn ObjectStore>,
+    storage: LocalStorage,
     db: PgPool,
     jwt_service: auth::JwtService,
+    geocoder: Arc<ReverseGeocoder>,
 }
 
-impl FromRef<AppState> for Arc<dyn ObjectStore> {
-    fn from_ref(state: &AppState) -> Arc<dyn ObjectStore> {
-        state.store.clone()
+impl FromRef<AppState> for LocalStorage {
+    fn from_ref(state: &AppState) -> LocalStorage {
+        state.storage.clone()
     }
 }
 
@@ -38,21 +43,24 @@ impl FromRef<AppState> for auth::JwtService {
     }
 }
 
+impl FromRef<AppState> for Arc<ReverseGeocoder> {
+    fn from_ref(state: &AppState) -> Arc<ReverseGeocoder> {
+        state.geocoder.clone()
+    }
+}
+
 fn create_router(app_state: AppState) -> Router {
     Router::new()
         .route("/ping", routing::get(ping_handler))
+        .route("/photos/upload", routing::post(photos::upload_handler))
+        .route("/photos/list", routing::get(photos::list_handler))
         .route(
-            "/images/upload",
-            routing::post(images::upload_images_handler),
-        )
-        .route("/images/list", routing::get(images::list_images_handler))
-        .route(
-            "/images/{id}/content",
-            routing::get(images::get_image_content_handler),
+            "/photos/{photo_id}/content",
+            routing::get(photos::get_content_handler),
         )
         .route(
-            "/images/delete-batch",
-            routing::post(images::delete_images_handler),
+            "/photos/delete-batch",
+            routing::post(photos::delete_batch_handler),
         )
         .route("/auth/register", routing::post(auth::register_handler))
         .route("/auth/login", routing::post(auth::login_handler))
@@ -99,10 +107,9 @@ async fn main() {
         "Failed to create store directory: {}",
         storage_dir.display()
     ));
-    let store = LocalFileSystem::new_with_prefix(storage_dir).expect("Failed to create store");
-    let store = Arc::new(store);
+    let storage = LocalStorage::new(storage_dir);
 
-    let db = db::create_pool(&app_config.database_url)
+    let db = infra::db::create_pool(&app_config.database_url)
         .await
         .expect(&format!(
             "Failed to create database pool: {}",
@@ -112,9 +119,10 @@ async fn main() {
     let jwt_service = auth::JwtService::new(app_config.jwt_secret.as_bytes());
 
     let router = create_router(AppState {
-        store,
+        storage,
         db: db.clone(),
         jwt_service,
+        geocoder: Arc::new(ReverseGeocoder::new()),
     });
 
     tracing::info!("Running server on {}", &app_config.address);

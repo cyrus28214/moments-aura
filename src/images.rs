@@ -1,251 +1,109 @@
-use crate::auth::AuthUser;
-use axum::{
-    Json,
-    extract::{Multipart, Path, State},
-    http::{StatusCode, header},
-    response::{IntoResponse, Response},
-};
-use object_store::ObjectStore;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use axum::http::StatusCode;
+use bytes::Bytes;
+use exif::Exif;
+use image::ImageReader;
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
-use std::sync::Arc;
-pub mod exif;
-pub use exif::extract_exif;
+use std::{collections::HashMap, io::Cursor};
 
-#[derive(Serialize)]
-pub struct Image {
-    id: i32,
-    file_name: String,
-    file_size: i64,
+use crate::{exif::get_image_exif, infra::storage::LocalStorage};
+
+pub fn get_image_hash<B: AsRef<[u8]>>(image_bytes: B) -> String {
+    let hash = Sha256::digest(image_bytes);
+    let hash_str = format!("{:x}", hash);
+    hash_str
 }
 
-pub enum FileType {
-    Jpeg,
-    Png,
-    Gif,
-    Webp,
+pub struct ImageInfo {
+    pub hash: String,
+    pub size: u64,
+    pub extension: String,
+    pub width: u32,
+    pub height: u32,
+    pub exif: Exif,
 }
 
-impl FileType {
-    fn from_mime_type(mime_type: &str) -> Option<FileType> {
-        match mime_type {
-            "image/jpeg" => Some(FileType::Jpeg),
-            "image/png" => Some(FileType::Png),
-            "image/gif" => Some(FileType::Gif),
-            "image/webp" => Some(FileType::Webp),
-            _ => None,
-        }
-    }
-
-    fn to_extension(self) -> &'static str {
-        match self {
-            FileType::Jpeg => "jpg",
-            FileType::Png => "png",
-            FileType::Gif => "gif",
-            FileType::Webp => "webp",
-        }
-    }
+pub fn get_image_info<B: AsRef<[u8]>>(image_bytes: B) -> Result<ImageInfo, (StatusCode, String)> {
+    let hash = get_image_hash(&image_bytes);
+    let size = image_bytes.as_ref().len() as u64;
+    // meta data
+    let cursor = Cursor::new(&image_bytes);
+    let reader = ImageReader::new(cursor)
+        .with_guessed_format()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
+    let format = reader
+        .format()
+        .ok_or((StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
+    let extension = match format {
+        image::ImageFormat::Jpeg => "jpeg",
+        image::ImageFormat::Png => "png",
+        image::ImageFormat::Gif => "gif",
+        image::ImageFormat::WebP => "webp",
+        _ => return Err((StatusCode::BAD_REQUEST, "Invalid image format".to_string())),
+    };
+    let (width, height) = reader
+        .into_dimensions()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
+    let exif = get_image_exif(image_bytes.as_ref())?;
+    Ok(ImageInfo {
+        hash,
+        size,
+        extension: extension.to_string(),
+        width,
+        height,
+        exif,
+    })
 }
 
-const MAX_UPLOAD_FILES: usize = 16;
-pub async fn upload_images_handler(
-    State(store): State<Arc<dyn ObjectStore>>,
-    State(db): State<PgPool>,
-    AuthUser { user_id }: AuthUser,
-    mut multipart: Multipart,
-) -> Result<Response, (StatusCode, String)> {
-    let mut uploaded_count = 0;
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+pub async fn save_image(
+    image_bytes: Bytes,
+    storage: &LocalStorage,
+    db: &PgPool,
+) -> Result<ImageInfo, (StatusCode, String)> {
+    let info = get_image_info(&image_bytes)?;
+    let exists = storage.exists(&info.hash).map_err(|e| {
+        tracing::error!(
+            error = ?e,
+            object = info.hash,
+            "Fail to check existence of object"
+        );
         (
-            StatusCode::BAD_REQUEST,
-            "Failed to parse multipart".to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
         )
-    })? {
-        let name = match field.name() {
-            Some(name) => name,
-            None => continue,
-        };
+    })?;
 
-        if name != "file" {
-            continue;
-        }
-
-        if uploaded_count >= MAX_UPLOAD_FILES {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                format!(
-                    "Too many files, at most {} files are allowed",
-                    MAX_UPLOAD_FILES
-                ),
-            ));
-        }
-
-        let file_name = match field.file_name() {
-            Some(name) => String::from(name),
-            None => continue,
-        };
-
-        let mine_type = match field.content_type() {
-            Some(mime_type) => String::from(mime_type),
-            None => continue,
-        };
-
-        let file_type = match FileType::from_mime_type(mine_type.as_str()) {
-            Some(file_type) => file_type,
-            None => continue,
-        };
-
-        let extension = file_type.to_extension();
-        // let file_path = format!("images/{}.{}", uuid::Uuid::now_v7(), extension);
-
-        let bytes = field.bytes().await.map_err(|e| {
-            tracing::error!(error = ?e, "Failed to read bytes from field");
-            (StatusCode::BAD_REQUEST, "Internal server error".to_string())
+    // save to object storage
+    if !exists {
+        storage.save(&info.hash, image_bytes).map_err(|e| {
+            tracing::error!(
+                error = ?e,
+                object = info.hash,
+                "Failed to save object"
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            )
         })?;
-
-        // store
-        //     .put(
-        //         &object_store::path::Path::from(file_path.clone()),
-        //         bytes.into(),
-        //     )
-        //     .await
-        //     .map_err(|e| {
-        //         tracing::error!(error = ?e, "Failed to store file");
-        //         (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-        //     })?;
-
-        // sqlx::query!(
-        //     "INSERT INTO image (file_name, file_path, file_size, mime_type, user_id) VALUES ($1, $2, $3, $4, $5)",
-        //     file_name,
-        //     file_path,
-        //     file_size as i64,
-        //     mine_type,
-        //     user_id,
-        // )
-        // .execute(&db)
-        // .await
-        // .map_err(|e| {
-        //     tracing::error!(error = ?e, "Failed to insert image");
-        //     (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-        // })?;
-
-        uploaded_count += 1;
     }
 
-    Ok(Json(json!({
-        "uploaded_count": uploaded_count,
-    }))
-    .into_response())
-}
-
-pub async fn list_images_handler(
-    State(db): State<PgPool>,
-    AuthUser {
-        user_id: auth_user_id,
-    }: AuthUser,
-) -> Result<Response, (StatusCode, String)> {
-    let images = sqlx::query_as!(
-        Image,
-        "SELECT id, file_name, file_size FROM image WHERE user_id = $1",
-        auth_user_id
-    )
-    .fetch_all(&db)
-    .await
-    .map_err(|e| {
-        tracing::error!(error = ?e, "Failed to fetch images");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
-        )
-    })?;
-
-    let json = json!({
-        "images": images,
-    });
-
-    Ok(Json(json).into_response())
-}
-
-pub async fn get_image_content_handler(
-    State(store): State<Arc<dyn ObjectStore>>,
-    State(db): State<PgPool>,
-    Path(image_id): Path<i32>,
-    AuthUser {
-        user_id: auth_user_id,
-    }: AuthUser,
-) -> Result<Response, (StatusCode, String)> {
-    let image = sqlx::query!(
-        "SELECT id, file_path, mime_type FROM image WHERE id = $1 AND user_id = $2",
-        image_id,
-        auth_user_id
-    )
-    .fetch_optional(&db)
-    .await
-    .map_err(|e| {
-        tracing::error!(error = ?e, "Failed to fetch image");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
-        )
-    })?
-    .ok_or_else(|| (StatusCode::NOT_FOUND, "Image not found".to_string()))?;
-
-    let file_path = object_store::path::Path::from(image.file_path);
-    let file = store.get(&file_path).await.map_err(|e| {
-        tracing::error!(error = ?e, "Failed to get file");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
-        )
-    })?;
-
-    let bytes = file.bytes().await.map_err(|e| {
-        tracing::error!(error = ?e, "Failed to read file bytes");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
-        )
-    })?;
-
-    Ok((
-        [
-            (header::CONTENT_TYPE, image.mime_type),
-            (header::CONTENT_LENGTH, bytes.len().to_string()),
-        ],
-        bytes,
-    )
-        .into_response())
-}
-
-#[derive(Deserialize)]
-pub struct DeleteImagesPayload {
-    image_ids: Vec<i32>,
-}
-
-pub async fn delete_images_handler(
-    State(db): State<PgPool>,
-    AuthUser {
-        user_id: auth_user_id,
-    }: AuthUser,
-    Json(payload): Json<DeleteImagesPayload>,
-) -> Result<Response, (StatusCode, String)> {
+    // save to database
     sqlx::query!(
-        "DELETE FROM image WHERE id = ANY($1) AND user_id = $2",
-        &payload.image_ids,
-        auth_user_id
+        r#"INSERT INTO "image" ("hash", "size", "extension", "width", "height") VALUES ($1, $2, $3, $4, $5)"#,
+        info.hash,
+        info.size as i64,
+        info.extension,
+        info.width as i64,
+        info.height as i64
     )
-    .execute(&db)
+    .execute(db)
     .await
-    .map_err(|e| {
-        tracing::error!(error = ?e, "Failed to delete images");
+    .map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
+            "Interval server error".to_string(),
         )
     })?;
-    Ok(Json(json!({
-        "deleted_image_ids": payload.image_ids,
-    }))
-    .into_response())
+    Ok(info)
 }
