@@ -22,7 +22,7 @@ pub async fn upload_handler(
     mut multipart: Multipart,
 ) -> Result<Response, (StatusCode, String)> {
     let mut uploaded_count = 0;
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+    while let Some(field) = multipart.next_field().await.map_err(|_e| {
         (
             StatusCode::BAD_REQUEST,
             "Failed to parse multipart".to_string(),
@@ -98,6 +98,8 @@ pub async fn upload_handler(
 struct Photo {
     id: String,
     image_hash: String,
+    width: i32,
+    height: i32,
     uploaded_at: i64,
 }
 
@@ -106,7 +108,18 @@ pub async fn list_handler(
     AuthUser { user_id }: AuthUser,
 ) -> Result<Response, (StatusCode, String)> {
     let photos: Vec<Photo> = sqlx::query!(
-        r#"SELECT "id", "image_hash", "uploaded_at" FROM "photo" WHERE "user_id" = $1 ORDER BY "uploaded_at" DESC"#,
+        r#"
+        SELECT
+            "photo"."id",
+            "photo"."image_hash",
+            "photo"."uploaded_at",
+            "image"."width",
+            "image"."height"
+        FROM "photo"
+        JOIN "image" ON "photo"."image_hash" = "image"."hash"
+        WHERE "photo"."user_id" = $1
+        ORDER BY "photo"."uploaded_at" DESC
+        "#,
         user_id
     )
     .fetch_all(&db)
@@ -122,7 +135,9 @@ pub async fn list_handler(
     .map(|v| Photo {
         id: v.id.to_string(),
         image_hash: v.image_hash.clone(),
-        uploaded_at: v.uploaded_at.unix_timestamp()
+        width: v.width,
+        height: v.height,
+        uploaded_at: v.uploaded_at.unix_timestamp(),
     })
     .collect();
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 
 import { upload_image, delete_images, type Image, list_images } from '@/api'
 
@@ -12,12 +13,20 @@ import {
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { MinusIcon, PlusIcon, SquareCheckIcon, SquareMousePointerIcon, CloudUploadIcon, LayoutGridIcon, Trash2Icon } from 'lucide-react'
+import { MinusIcon, PlusIcon, SquareCheckIcon, SquareMousePointerIcon, CloudUploadIcon, LayoutGridIcon, Trash2Icon, MoreVerticalIcon, MaximizeIcon, HeartIcon, CheckIcon, SquareIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/features/auth/hooks'
 import { PhotoView } from '../photos/components/photo'
+import { ImageDetailView } from '../photos/components/image-detail-view'
 import { ModeToggle } from '../theme/components/mode-toggle'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type ImageExtra = Image & {
   selected: boolean
@@ -32,6 +41,7 @@ export default function DashboardPage() {
   const { token, isLoading } = useAuth();
   const [images, setImages] = useState<ImageExtra[]>([])
   const [gridCols, setGridCols] = useState<number>(GRID_COLS_DEFAULT);
+  const [viewingImageId, setViewingImageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !token) {
@@ -41,8 +51,9 @@ export default function DashboardPage() {
 
   const fetchImages = useCallback(async () => {
     if (!token) return;
-    const { images } = await list_images(token);
-    setImages(images.map((image) => ({ ...image, selected: false })));
+    const { photos } = await list_images(token);
+    console.log(photos);
+    setImages(photos.map((image) => ({ ...image, selected: false })));
   }, [token]);
 
   useEffect(() => {
@@ -76,8 +87,11 @@ export default function DashboardPage() {
     setSelectMode(!selectMode);
   }
 
-  const handleImageClick = (imageId: number) => {
-    if (!selectMode) return;
+  const handleImageClick = (imageId: string) => {
+    if (!selectMode) {
+      setViewingImageId(imageId);
+      return;
+    };
     setImages(images.map((image) => {
       if (image.id !== imageId) {
         return image
@@ -95,16 +109,26 @@ export default function DashboardPage() {
     }
   }
 
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState<boolean>(false);
+
   const handleDeleteSelectedImages = () => {
+    setDeleteTargetId(null);
     setConfirmDeleteModalOpen(true);
   }
 
   const handleConfirmDelete = async () => {
-    const selectedIds = images
-      .filter((image) => image.selected)
-      .map((image) => image.id);
+    let idsToDelete: string[] = [];
 
-    if (selectedIds.length === 0) {
+    if (deleteTargetId) {
+      idsToDelete = [deleteTargetId];
+    } else {
+      idsToDelete = images
+        .filter((image) => image.selected)
+        .map((image) => image.id);
+    }
+
+    if (idsToDelete.length === 0) {
       setConfirmDeleteModalOpen(false);
       return;
     }
@@ -112,9 +136,9 @@ export default function DashboardPage() {
     if (!token) return;
 
     try {
-      await delete_images(selectedIds, token);
+      await delete_images(idsToDelete, token);
       setImages((prevImages) =>
-        prevImages.filter((image) => !selectedIds.includes(image.id))
+        prevImages.filter((image) => !idsToDelete.includes(image.id))
       );
       toast.success("Successfully deleted");
     } catch (error) {
@@ -122,6 +146,7 @@ export default function DashboardPage() {
       console.error(error);
     } finally {
       setConfirmDeleteModalOpen(false);
+      setDeleteTargetId(null);
       setSelectMode(false);
     }
   }
@@ -133,18 +158,33 @@ export default function DashboardPage() {
 
   const selectedCount = images.filter((image) => image.selected).length;
 
-  const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState<boolean>(false);
+
+
+  const viewingImageIndex = viewingImageId ? images.findIndex(img => img.id === viewingImageId) : -1;
+  const viewingImage = viewingImageIndex !== -1 ? images[viewingImageIndex] : null;
+
+  const handleNextImage = () => {
+    if (viewingImageIndex < images.length - 1) {
+      setViewingImageId(images[viewingImageIndex + 1].id);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (viewingImageIndex > 0) {
+      setViewingImageId(images[viewingImageIndex - 1].id);
+    }
+  };
 
   return (
-    <div className="flex flex-col min-h-screen p-4 gap-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col h-screen">
+      <div className="flex flex-wrap items-center gap-2 sticky p-4 top-0 z-10 bg-background">
         <Button variant="ghost" size="icon" className={cn("cursor-pointer", coverMode && "text-primary hover:text-primary")} onClick={handleCoverModeClick}>
           <LayoutGridIcon />
         </Button>
         <div className="flex items-center gap-1">
           {/* click minus icon, zoom out images, increase grid cols */}
           <Button variant="ghost" size="icon" className="cursor-pointer"
-            onClick={() => setGridCols(Math.max(GRID_COLS_MIN, gridCols - 1))}
+            onClick={() => setGridCols(Math.max(GRID_COLS_MIN, gridCols + 1))}
           >
             <MinusIcon />
           </Button>
@@ -160,7 +200,7 @@ export default function DashboardPage() {
           />
           {/* click plus icon, zoom in images, decrease grid cols */}
           <Button variant="ghost" size="icon" className="cursor-pointer"
-            onClick={() => setGridCols(Math.min(GRID_COLS_MAX, gridCols + 1))}
+            onClick={() => setGridCols(Math.min(GRID_COLS_MAX, gridCols - 1))}
           >
             <PlusIcon />
           </Button>
@@ -185,41 +225,99 @@ export default function DashboardPage() {
         </>)}
         <ModeToggle />
       </div>
-      {images.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <p className="text-muted-foreground">No photos</p>
-          <button className="text-primary underline-offset-4 hover:underline" onClick={handleFileInputClick}>Upload</button>
-        </div>
-      ) : (
-        <div className="grid gap-6 p-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
-          {images.map((image) => (
-            <div
-              key={image.id}
-              className="relative aspect-square"
-            >
-              <PhotoView
-                imageId={image.id}
-                token={token!}
-                alt={image.file_name}
-                className={cn(
-                  "block w-full h-full cursor-pointer",
-                  coverMode ? "object-cover" : "object-contain",
-                  selectMode && (image.selected || selectAll) && "ring-2 ring-primary"
-                )}
-                onClick={() => handleImageClick(image.id)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="px-6 py-4 flex-1">
+        {images.length === 0 ? (
+          <div className="flex flex-col items-center justify-center">
+            <p className="text-muted-foreground">No photos</p>
+            <button className="text-primary underline-offset-4 hover:underline" onClick={handleFileInputClick}>Upload</button>
+          </div>
+        ) : (
+          <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
+            {images.map((image) => (
+              <motion.div
+                layout
+                key={image.id}
+                className="aspect-square flex items-center justify-center"
+              ><div
+                className="relative group max-w-full max-h-full"
+                style={{
+                  aspectRatio: `${image.width} / ${image.height}`,
+                }}
+              >
+                  <PhotoView
+                    imageId={image.id}
+                    token={token!}
+                    alt={`Photo ${image.id}`}
+                    className={cn(
+                      "block cursor-pointer shadow-sm rounded-sm w-full h-full",
+                      selectMode && (image.selected || selectAll) && "ring-2 ring-primary"
+                    )}
+                    onClick={() => handleImageClick(image.id)}
+                  />
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" size="icon" className="h-8 w-8 cursor-pointer rounded-full shadow-md bg-background/80 hover:bg-background">
+                          <MoreVerticalIcon className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setViewingImageId(image.id)}>
+                          <MaximizeIcon className="w-4 h-4 mr-2" />
+                          Full Screen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setImages(images.map(img => img.id === image.id ? { ...img, selected: !img.selected } : img));
+                          setSelectMode(true);
+                        }}>
+                          <SquareMousePointerIcon className="w-4 h-4 mr-2" />
+                          {image.selected ? "Unselect" : "Select"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast.info("Collections not implemented yet")}>
+                          <HeartIcon className="w-4 h-4 mr-2" />
+                          Favorite
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                          setDeleteTargetId(image.id);
+                          setConfirmDeleteModalOpen(true);
+                        }}>
+                          <Trash2Icon className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )
+        }
+      </div>
       <ConfirmDeleteModal
         open={confirmDeleteModalOpen}
         onOpenChange={setConfirmDeleteModalOpen}
         onCancel={() => setConfirmDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
       />
+      <AnimatePresence>
+        {viewingImage && (
+          <ImageDetailView
+            key="lightbox"
+            image={viewingImage}
+            isOpen={true}
+            onClose={() => setViewingImageId(null)}
+            onNext={handleNextImage}
+            onPrev={handlePrevImage}
+            hasNext={viewingImageIndex < images.length - 1}
+            hasPrev={viewingImageIndex > 0}
+            token={token!}
+          />
+        )}
+      </AnimatePresence>
       <Toaster position="top-center" />
-    </div>
+    </div >
   )
 }
 

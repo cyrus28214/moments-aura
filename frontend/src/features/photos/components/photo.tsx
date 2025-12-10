@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { get_image_content } from '@/api';
+import { motion, type HTMLMotionProps } from 'framer-motion';
 
-interface AuthImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  imageId: number;
+interface AuthImageProps extends HTMLMotionProps<"img"> {
+  imageId: string;
   token: string;
+  showSkeleton?: boolean;
 }
 
-export const PhotoView = ({ imageId, token, className, ...props }: AuthImageProps) => {
+export const PhotoView = ({ imageId, token, className, style, showSkeleton = true, ...props }: AuthImageProps) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,19 +46,25 @@ export const PhotoView = ({ imageId, token, className, ...props }: AuthImageProp
   }, [imageId, token]);
 
   if (loading) {
-    // 这里可以返回一个 Skeleton 骨架屏或者加载转圈
-    return <div className={`animate-pulse bg-gray-200 ${className}`} />;
+    if (showSkeleton) {
+      return <motion.div className={`animate-pulse bg-gray-200 ${className} w-full h-full`} style={style} {...(props as any)} />;
+    }
+    return <div className={`w-full h-full ${className}`} style={{ ...style, opacity: 0 } as any} />;
   }
 
   if (!imageSrc) {
     // 加载失败显示的占位图
-    return <div className={`bg-gray-100 flex items-center justify-center ${className}`}>Error</div>;
+    return <motion.div className={`bg-gray-100 flex items-center justify-center ${className}`} style={style} {...(props as any)}>Error</motion.div>;
   }
 
   return (
-    <img
+    <motion.img
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       src={imageSrc}
       className={className}
+      style={style}
       {...props}
     />
   );

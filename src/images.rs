@@ -73,8 +73,8 @@ pub async fn save_image(
         )
     })?;
 
-    // save to object storage
     if !exists {
+        // save to object storage
         storage.save(&info.hash, image_bytes).map_err(|e| {
             tracing::error!(
                 error = ?e,
@@ -86,24 +86,24 @@ pub async fn save_image(
                 "Internal server error".to_string(),
             )
         })?;
-    }
 
-    // save to database
-    sqlx::query!(
-        r#"INSERT INTO "image" ("hash", "size", "extension", "width", "height") VALUES ($1, $2, $3, $4, $5)"#,
-        info.hash,
-        info.size as i64,
-        info.extension,
-        info.width as i64,
-        info.height as i64
-    )
-    .execute(db)
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Interval server error".to_string(),
+        // save to database
+        sqlx::query!(
+            r#"INSERT INTO "image" ("hash", "size", "extension", "width", "height") VALUES ($1, $2, $3, $4, $5)"#,
+            info.hash,
+            info.size as i64,
+            info.extension,
+            info.width as i64,
+            info.height as i64
         )
-    })?;
+        .execute(db)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Interval server error".to_string(),
+            )
+        })?;
+    }
     Ok(info)
 }

@@ -5,7 +5,7 @@ export const apiClient = axios.create({
 })
 
 export interface User {
-  id: number
+  id: string
   name: string
   email: string
 }
@@ -32,13 +32,15 @@ export interface LoginResult {
 }
 
 export interface Image {
-  id: number
-  file_name: string
-  file_size: number
+  id: string
+  image_hash: string
+  width: number
+  height: number
+  uploaded_at: number
 }
 
 export interface ListImagesResult {
-  images: Image[]
+  photos: Image[]
 }
 
 export interface UploadImagesResult {
@@ -46,11 +48,11 @@ export interface UploadImagesResult {
 }
 
 export interface DeleteImagesPayload {
-  image_ids: number[]
+  image_ids: string[]
 }
 
 export interface DeleteImagesResult {
-  deleted_image_ids: number[]
+  deleted_image_ids: string[]
 }
 
 export const register = async (payload: RegisterPayload): Promise<RegisterResult> => {
@@ -73,7 +75,9 @@ export const get_own_profile = async (token: string): Promise<{ user: User }> =>
 }
 
 export const upload_image = async (file: File, token: string): Promise<UploadImagesResult> => {
-  const response = await apiClient.post('/images/upload', { file }, {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await apiClient.post('/photos/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
       'Authorization': `Bearer ${token}`
@@ -83,7 +87,7 @@ export const upload_image = async (file: File, token: string): Promise<UploadIma
 }
 
 export const list_images = async (token: string): Promise<ListImagesResult> => {
-  const response = await apiClient.get('/images/list', {
+  const response = await apiClient.get('/photos/list', {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -91,8 +95,8 @@ export const list_images = async (token: string): Promise<ListImagesResult> => {
   return response.data
 }
 
-export const get_image_content = async (image_id: number, token: string): Promise<string> => {
-  const response = await apiClient.get(`/images/${image_id}/content`, {
+export const get_image_content = async (image_id: string, token: string): Promise<string> => {
+  const response = await apiClient.get(`/photos/${image_id}/content`, {
     headers: {
       'Authorization': `Bearer ${token}`
     },
@@ -101,8 +105,8 @@ export const get_image_content = async (image_id: number, token: string): Promis
   return URL.createObjectURL(response.data)
 }
 
-export const delete_images = async (image_ids: number[], token: string): Promise<DeleteImagesResult> => {
-  const response = await apiClient.post('/images/delete-batch', { image_ids }, {
+export const delete_images = async (image_ids: string[], token: string): Promise<DeleteImagesResult> => {
+  const response = await apiClient.post('/photos/delete-batch', { image_ids }, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
