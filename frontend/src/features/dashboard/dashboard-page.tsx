@@ -1,25 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 import { upload_image, delete_images, type Image, list_images } from '@/api'
 
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import {
-  AlertDialog,
-  AlertDialogTitle,
-  AlertDialogContent,
-  AlertDialogDescription,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { MinusIcon, PlusIcon, SquareCheckIcon, SquareMousePointerIcon, CloudUploadIcon, LayoutGridIcon, Trash2Icon, MoreVerticalIcon, MaximizeIcon, HeartIcon, CheckIcon, SquareIcon } from 'lucide-react'
+import { MinusIcon, PlusIcon, SquareCheckIcon, SquareMousePointerIcon, CloudUploadIcon, LayoutGridIcon, Trash2Icon, MoreVerticalIcon, MaximizeIcon, HeartIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/features/auth/hooks'
-import { PhotoView } from '../photos/components/photo'
-import { ImageDetailView } from '../photos/components/image-detail-view'
-import { ModeToggle } from '../theme/components/mode-toggle'
+import { PhotoView } from '@/features/photos/photo'
+import { ImageDetailView } from '@/features/photos/image-detail-view'
+import { ModeToggle } from '@/features/theme/mode-toggle'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import ConfirmDeleteModal from './confirm-delete-modal'
 
 type ImageExtra = Image & {
   selected: boolean
@@ -158,8 +153,6 @@ export default function DashboardPage() {
 
   const selectedCount = images.filter((image) => image.selected).length;
 
-
-
   const viewingImageIndex = viewingImageId ? images.findIndex(img => img.id === viewingImageId) : -1;
   const viewingImage = viewingImageIndex !== -1 ? images[viewingImageIndex] : null;
 
@@ -205,12 +198,11 @@ export default function DashboardPage() {
             <PlusIcon />
           </Button>
         </div>
+        <ModeToggle />
+        <div className="flex-1" />
         <Button variant="ghost" size="icon" className="cursor-pointer" onClick={handleFileInputClick}>
           <CloudUploadIcon />
           <input type="file" onChange={handleUploadFiles} className="hidden" multiple accept="image/*" ref={fileInputRef} />
-        </Button>
-        <Button variant="ghost" size="icon" disabled={images.length === 0} className={cn("cursor-pointer", selectMode && "text-primary hover:text-primary")} onClick={handleSelectionClick}>
-          <SquareMousePointerIcon />
         </Button>
         {selectMode && (<>
           <p className="text-sm">
@@ -223,7 +215,9 @@ export default function DashboardPage() {
             <Trash2Icon />
           </Button>
         </>)}
-        <ModeToggle />
+        <Button variant="ghost" size="icon" disabled={images.length === 0} className={cn("cursor-pointer", selectMode && "text-primary hover:text-primary")} onClick={handleSelectionClick}>
+          <SquareMousePointerIcon />
+        </Button>
       </div>
       <div className="px-6 py-4 flex-1">
         {images.length === 0 ? (
@@ -241,7 +235,7 @@ export default function DashboardPage() {
               ><div
                 className="relative group max-w-full max-h-full"
                 style={{
-                  aspectRatio: `${image.width} / ${image.height}`,
+                  aspectRatio: coverMode ? `1 / 1` : `${image.width} / ${image.height}`,
                 }}
               >
                   <PhotoView
@@ -250,15 +244,16 @@ export default function DashboardPage() {
                     alt={`Photo ${image.id}`}
                     className={cn(
                       "block cursor-pointer shadow-sm rounded-sm w-full h-full",
-                      selectMode && (image.selected || selectAll) && "ring-2 ring-primary"
+                      selectMode && (image.selected || selectAll) && "ring-2 ring-primary",
+                      coverMode ? "object-cover" : "object-contain"
                     )}
                     onClick={() => handleImageClick(image.id)}
                   />
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="secondary" size="icon" className="h-8 w-8 cursor-pointer rounded-full shadow-md bg-background/80 hover:bg-background">
-                          <MoreVerticalIcon className="h-4 w-4" />
+                        <Button variant="secondary" className="size-8 cursor-pointer rounded-full shadow-md bg-background/80 hover:bg-background/95">
+                          <MoreVerticalIcon />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -271,7 +266,7 @@ export default function DashboardPage() {
                           setSelectMode(true);
                         }}>
                           <SquareMousePointerIcon className="w-4 h-4 mr-2" />
-                          {image.selected ? "Unselect" : "Select"}
+                          {image.selected ? "Select" : "Unselect"}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => toast.info("Collections not implemented yet")}>
                           <HeartIcon className="w-4 h-4 mr-2" />
@@ -301,47 +296,16 @@ export default function DashboardPage() {
         onCancel={() => setConfirmDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
       />
-      <AnimatePresence>
-        {viewingImage && (
-          <ImageDetailView
-            key="lightbox"
-            image={viewingImage}
-            isOpen={true}
-            onClose={() => setViewingImageId(null)}
-            onNext={handleNextImage}
-            onPrev={handlePrevImage}
-            hasNext={viewingImageIndex < images.length - 1}
-            hasPrev={viewingImageIndex > 0}
-            token={token!}
-          />
-        )}
-      </AnimatePresence>
+      {viewingImage && (
+        <ImageDetailView
+          image={viewingImage}
+          onClose={() => setViewingImageId(null)}
+          onNext={viewingImageIndex < images.length - 1 ? () => setViewingImageId(images[viewingImageIndex + 1].id) : undefined}
+          onPrev={viewingImageIndex > 0 ? () => setViewingImageId(images[viewingImageIndex - 1].id) : undefined}
+          token={token!}
+        />
+      )}
       <Toaster position="top-center" />
     </div >
   )
-}
-
-const ConfirmDeleteModal = ({ open, onOpenChange, onCancel, onConfirm }: {
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-  onCancel: () => void,
-  onConfirm: () => void
-}) => {
-  return (<AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
-      <div className="flex flex-col items-center gap-8 p-4">
-        <div className="flex flex-col items-center gap-4">
-          <Trash2Icon className="size-8" />
-          <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This operation cannot be undone. This will permanently delete the images you have selected.
-          </AlertDialogDescription>
-        </div>
-        <div className="flex w-full gap-2">
-          <Button variant="outline" className="flex-1 cursor-pointer" onClick={onCancel}>Cancel</Button>
-          <Button variant="outline" className="flex-1 cursor-pointer text-destructive hover:text-destructive" onClick={onConfirm}>Delete</Button>
-        </div>
-      </div>
-    </AlertDialogContent>
-  </AlertDialog>)
 }

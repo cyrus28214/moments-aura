@@ -4,7 +4,7 @@ import { useAuth } from './hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ModeToggle } from '@/features/theme/components/mode-toggle'
+import { ModeToggle } from '@/features/theme/mode-toggle'
 import { X, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null) 
+  const [error, setError] = useState<string | null>(null)
 
   const emailInputRef = useRef<HTMLInputElement>(null)
   const passwordInputRef = useRef<HTMLInputElement>(null)
@@ -83,7 +83,7 @@ export default function LoginPage() {
               ref={passwordInputRef}
             />
           </div>
-          
+
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md relative whitespace-pre-wrap flex items-center gap-2">
               <span className="flex-1">{error}</span>
