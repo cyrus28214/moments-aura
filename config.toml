@@ -1,2 +1,15 @@
+# You can edit this config file directly, or store the variables in environment variables.
+# If you store the environment variables in `.env`, remember to run `set -a && source .env && set +a` before start the server, the server will not load the environment variables automatically.
 address = "0.0.0.0:8080"
 storage_dir = "./data"
+database_url = "{{ $DATABASE_URL }}" # Example "postgresql://postgres:password@localhost:5432/moments_aura".
+jwt_secret= "{{ $JWT_SECRET }}" # Hint: you can use `openssl rand -hex 32 to generate a secret key`.
+
+# This is used to generate recommended tags from photos.
+[ai]
+# If disabled, some API endpoints will not work.
+enable = true
+# Any openapi compatible API is supported.
+model = "qwen3-vl-plus"
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+api_key = "{{ $DASHBOARD_API_KEY }}"

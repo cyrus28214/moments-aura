@@ -4,6 +4,15 @@ export const apiClient = axios.create({
   baseURL: "/api"
 })
 
+export interface ServerInfo {
+  features: string[]
+}
+
+export const get_server_info = async (): Promise<ServerInfo> => {
+  const response = await apiClient.get('/server-info')
+  return response.data
+}
+
 export interface User {
   id: string
   name: string
@@ -158,6 +167,19 @@ export interface ListTagsResponse {
 
 export const list_tags = async (token: string): Promise<ListTagsResponse> => {
   const response = await apiClient.get('/tags/list', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  return response.data
+}
+
+export interface RecommendTagsResponse {
+  tags: string[]
+}
+
+export const recommend_tags = async (photo_id: string, token: string): Promise<RecommendTagsResponse> => {
+  const response = await apiClient.post(`/photos/${photo_id}/recommend-tags`, {}, {
     headers: {
       'Authorization': `Bearer ${token}`
     }

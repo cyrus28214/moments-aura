@@ -7,7 +7,7 @@ export default function TrashPage() {
                 <Trash2Icon className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-semibold">Trash</h2>
-            <p>Deleted photos will support recovery soon.</p>
+            <p>Under development, coming soon...</p>
         </div>
     );
 }

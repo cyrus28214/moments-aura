@@ -1,11 +1,11 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRef } from 'react'
 
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { MinusIcon, PlusIcon, SquareCheckIcon, LayoutGridIcon, Trash2Icon, PanelLeft, CloudUploadIcon, FilterIcon } from 'lucide-react'
+import { MinusIcon, PlusIcon, SquareCheckIcon, LayoutGridIcon, Trash2Icon, PanelLeft, CloudUploadIcon, FilterIcon, MinimizeIcon, MaximizeIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDashboardContext } from '../layout/dashboard-layout'
 import { ImageDetailView } from '@/features/photos/image-detail-view'
@@ -13,17 +13,24 @@ import ConfirmDeleteModal from '@/features/photos/confirm-delete-modal'
 import { useImages } from '@/features/photos/image-context'
 import { usePhotoSelection } from './use-photo-selection'
 import { PhotoCard } from './photo-card'
-import { Badge } from '@/components/ui/badge'
 import { TagFilterPanel } from '../tags/tags-filter-panel'
 import { SlideshowModal } from './slideshow-modal'
 
 export default function PhotosPage() {
   const { images: serverImages, uploadImages, deleteImages, tags } = useImages();
-  const { setSidebarOpen, sidebarOpen } = useDashboardContext();
+  const { setSidebarOpen, sidebarOpen, isMobile, toggleMobileSidebar } = useDashboardContext();
 
   // Grid State
-  const [gridCols, setGridCols] = useState<number>(5);
+  const [gridCols, setGridCols] = useState<number>(3);
   const [coverMode, setCoverMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isMobile) {
+      setGridCols(1);
+    } else {
+      setGridCols(3);
+    }
+  }, [isMobile]);
 
   // Selection State
   const { selectedIds, toggleSelection, toggleSelectAll, clearSelection } = usePhotoSelection(serverImages);
@@ -137,7 +144,13 @@ export default function PhotosPage() {
       <div className="sticky top-0 z-10 bg-background border-b">
         {/* Tool Bar */}
         <div className="flex flex-wrap items-center gap-2 p-4">
-          <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => {
+            if (isMobile) {
+              toggleMobileSidebar();
+            } else {
+              setSidebarOpen(!sidebarOpen);
+            }
+          }}>
             <PanelLeft />
           </Button>
 
@@ -150,10 +163,12 @@ export default function PhotosPage() {
             <LayoutGridIcon />
           </Button>
 
-          <GridController
-            gridCols={gridCols}
-            setGridCols={setGridCols}
-          />
+          {!isMobile && (
+            <GridController
+              gridCols={gridCols}
+              setGridCols={setGridCols}
+            />
+          )}
 
           <Button
             variant={openTagsFilter ? "secondary" : "ghost"}
@@ -203,7 +218,7 @@ export default function PhotosPage() {
           </div>
         ) : (
           <div className="px-6 py-4 flex-1">
-            <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
               {images.map((image) => (
                 <PhotoCard
                   key={image.id}
@@ -256,14 +271,13 @@ export default function PhotosPage() {
 function GridController({
   gridCols,
   setGridCols,
-  gridColsMin = 3,
+  gridColsMin = 1,
   gridColsMax = 10
 }: {
   gridCols: number;
   setGridCols: (gridCols: number) => void;
   gridColsMin?: number;
   gridColsMax?: number;
-  gridColsDefault?: number;
 }) {
   // Note: this slider is **reversed** by design, it is not a bug
   return (
@@ -271,7 +285,7 @@ function GridController({
       <Button variant="ghost" size="icon" className="cursor-pointer"
         onClick={() => setGridCols(Math.min(gridColsMax, gridCols + 1))}
       >
-        <MinusIcon />
+        <MinimizeIcon />
       </Button>
       <Slider
         value={[gridColsMax + gridColsMin - gridCols]}
@@ -287,7 +301,7 @@ function GridController({
       <Button variant="ghost" size="icon" className="cursor-pointer"
         onClick={() => setGridCols(Math.max(gridColsMin, gridCols - 1))}
       >
-        <PlusIcon />
+        <MaximizeIcon />
       </Button>
     </div>
   );

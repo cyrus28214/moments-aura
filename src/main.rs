@@ -1,5 +1,5 @@
 use moments_aura::{
-    auth, config,
+    ai, auth, config,
     infra::{self, storage::LocalStorage},
     photos, tags, users,
 };
@@ -11,7 +11,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use axum::{
     Router,
-    extract::{DefaultBodyLimit, FromRef},
+    extract::{DefaultBodyLimit, FromRef, State},
     routing,
 };
 use sqlx::PgPool;
@@ -23,6 +23,7 @@ pub struct AppState {
     db: PgPool,
     jwt_service: auth::JwtService,
     geocoder: Arc<ReverseGeocoder>,
+    ai_service: Option<Arc<ai::AiService>>,
 }
 
 impl FromRef<AppState> for LocalStorage {
@@ -49,16 +50,41 @@ impl FromRef<AppState> for Arc<ReverseGeocoder> {
     }
 }
 
+impl FromRef<AppState> for Arc<ai::AiService> {
+    fn from_ref(state: &AppState) -> Arc<ai::AiService> {
+        state.ai_service.clone().expect("AI service is not enabled")
+    }
+}
+
+async fn server_info_handler(State(state): State<AppState>) -> axum::Json<serde_json::Value> {
+    let mut features = vec![];
+    if state.ai_service.is_some() {
+        features.push("ai");
+    }
+    axum::Json(serde_json::json!({
+        "features": features
+    }))
+}
+
 fn create_router(app_state: AppState) -> Router {
-    Router::new()
-        .route("/ping", routing::get(ping_handler))
+    let mut router = Router::new()
+        .route("/server-info", routing::get(server_info_handler))
         .route("/photos/upload", routing::post(photos::upload_handler))
         .route("/photos/list", routing::get(photos::list_handler))
         .route("/tags/list", routing::get(tags::list_tags_handler))
         .route(
             "/photos/{photo_id}/content",
             routing::get(photos::get_content_handler),
-        )
+        );
+
+    if app_state.ai_service.is_some() {
+        router = router.route(
+            "/photos/{photo_id}/recommend-tags",
+            routing::post(photos::recommend_tags_handler),
+        );
+    }
+
+    router
         .route(
             "/photos/delete-batch",
             routing::post(photos::delete_batch_handler),
@@ -79,10 +105,6 @@ fn create_router(app_state: AppState) -> Router {
         .layer(TraceLayer::new_for_http())
 }
 
-async fn ping_handler() -> &'static str {
-    "pong"
-}
-
 #[tokio::main]
 async fn main() {
     // logger
@@ -95,18 +117,9 @@ async fn main() {
         .init();
     std::panic::set_hook(Box::new(tracing_panic::panic_hook));
 
-    // environment variables
-    match dotenvy::dotenv() {
-        Ok(_) => info!("Loaded environment variables from .env"),
-        Err(e) => warn!(
-            "Could not load environment variables from .env: {}, continuing with system environment variables.",
-            e
-        ),
-    }
-
     // app
     let config_path = Path::new("config.toml");
-    let app_config = config::AppConfig::from_file(config_path);
+    let app_config = config::AppConfig::new(config_path);
     let listener = tokio::net::TcpListener::bind(&app_config.address)
         .await
         .expect(&format!("Failed to bind address: {}", app_config.address));
@@ -127,11 +140,18 @@ async fn main() {
 
     let jwt_service = auth::JwtService::new(app_config.jwt_secret.as_bytes());
 
+    let ai_service = if app_config.ai.enable {
+        Some(Arc::new(ai::AiService::new(app_config.ai)))
+    } else {
+        None
+    };
+
     let router = create_router(AppState {
         storage,
         db: db.clone(),
         jwt_service,
         geocoder: Arc::new(ReverseGeocoder::new()),
+        ai_service,
     });
 
     tracing::info!("Running server on {}", &app_config.address);

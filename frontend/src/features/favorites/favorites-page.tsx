@@ -7,7 +7,7 @@ export default function FavoritesPage() {
                 <HeartIcon className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-semibold">Favorites</h2>
-            <p>Your favorite photos will appear here.</p>
+            <p>Under development, coming soon...</p>
         </div>
     );
 }

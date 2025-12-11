@@ -23,12 +23,31 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
     const { uploadImages, addTag, removeTag } = useImages();
     const [showSidebar, setShowSidebar] = useState(true);
     const [showControls, setShowControls] = useState(true);
+    const [isMobile, setIsMobile] = useState(false);
     const { url: imageUrl } = useImageBlob(image.id);
     console.log({ source: "ImageDetailView", photo_id: image.id, url: imageUrl });
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const { state: editorState, update: updateEditor, reset: resetEditor, hasChanges } = useEditorState();
+
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) {
+                // Default to false on mobile initial load? Or keep true and let Sheet handle it?
+                // Actually sheet is hidden by default usually. Let's start closed on mobile or open?
+                // User probably wants to see image. Start closed on mobile.
+                setShowSidebar(false);
+            } else {
+                setShowSidebar(true);
+            }
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         resetEditor();
@@ -199,6 +218,7 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
             <ImageSidebar
                 image={image}
                 open={showSidebar}
+                onOpenChange={setShowSidebar}
                 tab={tab}
                 setTab={setTab}
                 editorState={editorState}
@@ -207,6 +227,7 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                 onSave={handleSave}
                 onAddTag={(tag: string) => addTag(image.id, tag)}
                 onRemoveTag={(tag: string) => removeTag(image.id, tag)}
+                isMobile={isMobile}
             />
 
             {/* Modal */}

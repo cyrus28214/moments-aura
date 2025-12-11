@@ -48,11 +48,11 @@ export function TagFilterPanel({
                                         onClick={() => onToggleTag(tag.name)}
                                         variant={isSelected ? "default" : "secondary"}
                                         className={cn(
-                                            "h-9 flex items-center justify-center gap-2 px-4 py-2 rounded-md cursor-pointer"
+                                            "text-sm h-9 flex items-center justify-center gap-2 px-4 py-2 rounded-md cursor-pointer"
                                         )}
                                     >
                                         <span>{tag.name}</span>
-                                        <span className={cn("text-xs opacity-70", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                                        <span className={cn("opacity-70", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
                                             {tag.count}
                                         </span>
                                     </Badge>

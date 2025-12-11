@@ -10,9 +10,7 @@ axum = { version = "0.8.6", features = ["multipart", "macros"] }
 toml = "0.9.8"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-object_store = "0.12.4"
 serde_json = "1.0.145"
-dotenvy = "0.15.7"
 sqlx = { version = "0.8.6", features = [
     "runtime-tokio",
     "tls-native-tls",
@@ -35,6 +33,8 @@ bytes = "1.11.0"
 sha2 = "0.10.9"
 image = "0.25.9"
 reverse_geocoder = "4.1.1"
+reqwest = { version = "0.12.25", features = ["json"] }
+base64 = "0.22.1"
 
 [dev-dependencies]
 tempfile = "3.10"

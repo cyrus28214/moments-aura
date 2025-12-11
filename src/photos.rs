@@ -11,7 +11,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{auth::AuthUser, exif::parse_exif, images, infra::storage::LocalStorage};
+use crate::{ai, auth::AuthUser, exif::parse_exif, images, infra::storage::LocalStorage};
 
 const MAX_UPLOAD_FILES: usize = 16;
 pub async fn upload_handler(
@@ -412,4 +412,75 @@ pub async fn delete_tags_batch_handler(
         "success": true
     }))
     .into_response())
+}
+#[derive(Serialize)]
+pub struct RecommendTagsResponse {
+    tags: Vec<String>,
+}
+
+pub async fn recommend_tags_handler(
+    State(storage): State<LocalStorage>,
+    State(db): State<PgPool>,
+    State(ai_service): State<Arc<ai::AiService>>,
+    Path(photo_id): Path<Uuid>,
+    AuthUser { user_id }: AuthUser,
+) -> Result<Response, (StatusCode, String)> {
+    // 1. Fetch image info to check ownership and get hash
+    let photo = sqlx::query!(
+        r#"SELECT
+            "image"."hash",
+            "image"."extension"
+        FROM "photo"
+        JOIN "image" ON "photo"."image_hash" = "image"."hash"
+        WHERE "photo"."id" = $1 AND "photo"."user_id" = $2"#,
+        photo_id,
+        user_id
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| {
+        tracing::error!(error = ?e, "Failed to fetch image info");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
+    })?
+    .ok_or_else(|| (StatusCode::NOT_FOUND, "Image not found".to_string()))?;
+
+    // 2. Fetch image content
+    let bytes = storage.get(&photo.hash).map_err(|e| {
+        tracing::error!(error = ?e, "Failed to get image content for AI analysis");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
+    })?;
+
+    // 3. Determine MIME type
+    let mime_type = match photo.extension.as_str() {
+        "jpeg" | "jpg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Unsupported image format for AI analysis".to_string(),
+            ));
+        }
+    };
+
+    // 4. Call AI Service
+    let tags = ai_service
+        .recommend_tags(&bytes, mime_type)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = ?e, "AI service failed");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("AI Analysis failed: {}", e),
+            )
+        })?;
+
+    Ok(Json(RecommendTagsResponse { tags }).into_response())
 }
