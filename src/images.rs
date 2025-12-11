@@ -20,7 +20,7 @@ pub struct ImageInfo {
     pub extension: String,
     pub width: u32,
     pub height: u32,
-    pub exif: Exif,
+    pub exif: Option<Exif>,
 }
 
 pub fn get_image_info<B: AsRef<[u8]>>(image_bytes: B) -> Result<ImageInfo, (StatusCode, String)> {
@@ -30,7 +30,10 @@ pub fn get_image_info<B: AsRef<[u8]>>(image_bytes: B) -> Result<ImageInfo, (Stat
     let cursor = Cursor::new(&image_bytes);
     let reader = ImageReader::new(cursor)
         .with_guessed_format()
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
+        .map_err(|e| {
+            tracing::warn!(error = ?e, "Failed to read image");
+            (StatusCode::BAD_REQUEST, "Invalid image format".to_string())
+        })?;
     let format = reader
         .format()
         .ok_or((StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
@@ -39,12 +42,16 @@ pub fn get_image_info<B: AsRef<[u8]>>(image_bytes: B) -> Result<ImageInfo, (Stat
         image::ImageFormat::Png => "png",
         image::ImageFormat::Gif => "gif",
         image::ImageFormat::WebP => "webp",
-        _ => return Err((StatusCode::BAD_REQUEST, "Invalid image format".to_string())),
+        _ => {
+            tracing::info!("Invalid image format: {:?}", format);
+            return Err((StatusCode::BAD_REQUEST, "Invalid image format".to_string()));
+        }
     };
-    let (width, height) = reader
-        .into_dimensions()
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
-    let exif = get_image_exif(image_bytes.as_ref())?;
+    let (width, height) = reader.into_dimensions().map_err(|e| {
+        tracing::warn!(error = ?e, "Failed to read image dimensions");
+        (StatusCode::BAD_REQUEST, "Invalid image format".to_string())
+    })?;
+    let exif = get_image_exif(image_bytes.as_ref());
     Ok(ImageInfo {
         hash,
         size,

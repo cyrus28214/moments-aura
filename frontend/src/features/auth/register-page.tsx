@@ -3,7 +3,6 @@ import { useNavigate, Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ModeToggle } from '../theme/mode-toggle'
 import { register } from '@/api'
 import { useAuth } from './hooks'
 import { X, Loader2 } from 'lucide-react'
@@ -59,7 +58,7 @@ export default function RegisterPage() {
       const result = await register({ name, email, password })
       await refreshAuth(result.token)
       setError(null)
-      navigate({ to: '/dashboard' })
+      navigate({ to: '/photos' })
     } catch (err: any) {
       console.error(err)
       const errorData = err.response?.data
@@ -89,100 +88,95 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
-      <div className="absolute top-4 right-4">
-        <ModeToggle />
+    <>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold">Register</h1>
+        <p className="text-muted-foreground mt-2">Create a new account</p>
       </div>
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Register</h1>
-          <p className="text-muted-foreground mt-2">Create a new account</p>
+
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        <div className="space-y-2">
+          <Label htmlFor="name">Username</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            autoComplete="name"
+            minLength={6}
+            maxLength={256}
+            ref={nameInputRef}
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="name">Username</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="name"
-              minLength={6}
-              maxLength={256}
-              ref={nameInputRef}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              maxLength={256}
-              placeholder="your@email.com"
-              ref={emailInputRef}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              minLength={6}
-              maxLength={256}
-              ref={passwordInputRef}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              ref={confirmPasswordInputRef}
-            />
-          </div>
-
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md relative whitespace-pre-wrap flex items-center gap-2">
-              <span className="flex-1">{error}</span>
-              <button
-                type="button"
-                onClick={() => setError(null)}
-                className="shrink-0 hover:opacity-70 transition-opacity"
-                aria-label="Close error"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="size-4 animate-spin" /> : 'Register'}
-          </Button>
-        </form>
-
-        <div className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link to="/login" className="text-primary hover:underline">
-            Login
-          </Link>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            maxLength={256}
+            placeholder="your@email.com"
+            ref={emailInputRef}
+          />
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            minLength={6}
+            maxLength={256}
+            ref={passwordInputRef}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm Password</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            ref={confirmPasswordInputRef}
+          />
+        </div>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md relative whitespace-pre-wrap flex items-center gap-2">
+            <span className="flex-1">{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="shrink-0 hover:opacity-70 transition-opacity"
+              aria-label="Close error"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : 'Register'}
+        </Button>
+      </form>
+
+      <div className="text-center text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link to="/login" className="text-primary hover:underline">
+          Login
+        </Link>
       </div>
-    </div>
+    </>
   )
 }
 

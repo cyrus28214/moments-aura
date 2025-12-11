@@ -14,17 +14,15 @@ import { cn } from "@/lib/utils";
 
 export const DiscardChangesModal = ({
     open,
-    onOpenChange,
     onKeepEditing,
     onDiscard
 }: {
     open: boolean;
-    onOpenChange: (open: boolean) => void;
     onKeepEditing: () => void;
     onDiscard: () => void;
 }) => {
     return (
-        <AlertDialog open={open} onOpenChange={onOpenChange}>
+        <AlertDialog open={open}>
             <AlertDialogContent className="sm:max-w-[425px]">
                 <AlertDialogHeader className="flex flex-col items-center gap-2">
                     <div className="flex size-12 items-center justify-center p-3 mb-2">
@@ -40,16 +38,13 @@ export const DiscardChangesModal = ({
                 <AlertDialogFooter className="sm:justify-center sm:space-x-4 mt-4 w-full flex-row gap-2">
                     <AlertDialogCancel
                         onClick={onKeepEditing}
-                        className="flex-1 mt-0"
+                        className="flex-1 mt-0 cursor-pointer"
                     >
                         Keep Editing
                     </AlertDialogCancel>
                     <AlertDialogAction
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onDiscard();
-                        }}
-                        className={cn(buttonVariants({ variant: "destructive" }), "flex-1")}
+                        onClick={onDiscard}
+                        className={cn(buttonVariants({ variant: "destructive" }), "flex-1 cursor-pointer")}
                     >
                         Discard & Leave
                     </AlertDialogAction>

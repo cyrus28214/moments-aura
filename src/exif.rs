@@ -1,16 +1,12 @@
 use std::io::Cursor;
 
-use axum::http::StatusCode;
 use exif::{Exif, Tag};
 use time::{PrimitiveDateTime, macros::format_description};
 
-pub fn get_image_exif<B: AsRef<[u8]>>(image_bytes: B) -> Result<Exif, (StatusCode, String)> {
+pub fn get_image_exif<B: AsRef<[u8]>>(image_bytes: B) -> Option<Exif> {
     let mut cursor = Cursor::new(image_bytes);
     let reader = exif::Reader::new();
-    let exif = reader
-        .read_from_container(&mut cursor)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid image format".to_string()))?;
-    Ok(exif)
+    reader.read_from_container(&mut cursor).ok()
 }
 
 pub struct ParseExifResult {

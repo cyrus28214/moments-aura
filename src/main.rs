@@ -1,7 +1,7 @@
 use moments_aura::{
     auth, config,
     infra::{self, storage::LocalStorage},
-    photos, users,
+    photos, tags, users,
 };
 use reverse_geocoder::ReverseGeocoder;
 use std::{path::Path, sync::Arc};
@@ -54,6 +54,7 @@ fn create_router(app_state: AppState) -> Router {
         .route("/ping", routing::get(ping_handler))
         .route("/photos/upload", routing::post(photos::upload_handler))
         .route("/photos/list", routing::get(photos::list_handler))
+        .route("/tags/list", routing::get(tags::list_tags_handler))
         .route(
             "/photos/{photo_id}/content",
             routing::get(photos::get_content_handler),
@@ -61,6 +62,14 @@ fn create_router(app_state: AppState) -> Router {
         .route(
             "/photos/delete-batch",
             routing::post(photos::delete_batch_handler),
+        )
+        .route(
+            "/tags/add-batch",
+            routing::post(photos::add_tags_batch_handler),
+        )
+        .route(
+            "/tags/delete-batch",
+            routing::post(photos::delete_tags_batch_handler),
         )
         .route("/auth/register", routing::post(auth::register_handler))
         .route("/auth/login", routing::post(auth::login_handler))

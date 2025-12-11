@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 type ImageCanvasProps = {
     imageSrc: string;
@@ -7,35 +7,30 @@ type ImageCanvasProps = {
     saturation: number;
 } & React.CanvasHTMLAttributes<HTMLCanvasElement>;
 
-export const ImageCanvas = ({
+export const ImageCanvas = forwardRef<HTMLCanvasElement, ImageCanvasProps>(({
     imageSrc,
     brightness,
     contrast,
     saturation,
-    className,
+    style,
     ...props
-}: ImageCanvasProps) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+}, ref) => {
+    const internalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
+
+    useImperativeHandle(ref, () => internalCanvasRef.current as HTMLCanvasElement);
 
     useEffect(() => {
         if (!imageSrc) return;
-
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = imageSrc;
-
-        img.onload = () => {
-            setImageObj(img);
-        };
-
-        img.onerror = () => {
-            setImageObj(null);
-        };
+        img.onload = () => setImageObj(img);
+        img.onerror = () => setImageObj(null);
     }, [imageSrc]);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
+        const canvas = internalCanvasRef.current;
         if (!canvas || !imageObj) return;
 
         const ctx = canvas.getContext('2d');
@@ -49,13 +44,13 @@ export const ImageCanvas = ({
         ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
 
         ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
-
     }, [imageObj, brightness, contrast, saturation]);
 
     return (
         <canvas
-            ref={canvasRef}
+            ref={internalCanvasRef}
+            style={{ maxWidth: '100%', height: 'auto', display: 'block', ...style }}
             {...props}
         />
     );
-}
+});

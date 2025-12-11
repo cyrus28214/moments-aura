@@ -37,6 +37,7 @@ export interface Image {
   width: number
   height: number
   uploaded_at: number
+  tags: string[]
 }
 
 export interface ListImagesResult {
@@ -86,11 +87,16 @@ export const upload_image = async (file: File, token: string): Promise<UploadIma
   return response.data
 }
 
-export const list_images = async (token: string): Promise<ListImagesResult> => {
+export const list_images = async (token: string, tags?: string, untagged?: boolean): Promise<ListImagesResult> => {
+  const params: any = {};
+  if (tags) params.tags = tags;
+  if (untagged) params.untagged = untagged;
+
   const response = await apiClient.get('/photos/list', {
     headers: {
       'Authorization': `Bearer ${token}`
-    }
+    },
+    params
   })
   return response.data
 }
@@ -107,6 +113,33 @@ export const get_image_content = async (image_id: string, token: string): Promis
 
 export const delete_images = async (image_ids: string[], token: string): Promise<DeleteImagesResult> => {
   const response = await apiClient.post('/photos/delete-batch', { image_ids }, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  return response.data
+}
+
+export interface TagBatchPayload {
+  tag_names: string[]
+  photo_ids: string[]
+}
+
+export interface TagBatchResult {
+  success: boolean
+}
+
+export const add_tags_batch = async (payload: TagBatchPayload, token: string): Promise<TagBatchResult> => {
+  const response = await apiClient.post('/tags/add-batch', payload, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  return response.data
+}
+
+export const delete_tags_batch = async (payload: TagBatchPayload, token: string): Promise<TagBatchResult> => {
+  const response = await apiClient.post('/tags/delete-batch', payload, {
     headers: {
       'Authorization': `Bearer ${token}`
     }

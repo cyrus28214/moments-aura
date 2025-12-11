@@ -1,7 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, CropIcon, RotateCwIcon, SaveIcon } from "lucide-react";
+import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, CropIcon, RotateCwIcon, SaveIcon, ChevronDownIcon, FilePlusIcon, TagIcon, PlusIcon, XIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+
 import { type Image } from "@/api";
 import { cn } from "@/lib/utils";
 import { isEqual } from "lodash";
@@ -38,26 +41,34 @@ export const useEditorState = () => {
 
 interface ImageSidebarProps {
     image: Image;
-    isOpen: boolean;
-    activeTab: string;
-    onTabChange?: (val: string) => void;
+    open: boolean;
+    tab: "info" | "edit";
+    setTab: (tab: "info" | "edit") => void;
     editorState: EditorState;
-    onUpdateState?: (state: Partial<EditorState>) => void;
-    onReset?: () => void;
-    onSave?: (mode: 'new' | 'overwrite') => void;
+    onUpdateState: (state: Partial<EditorState>) => void;
+    onReset: () => void;
+    onSave: () => void;
+    onAddTag: (tag: string) => void;
+    onRemoveTag: (tag: string) => void;
 }
 
-export const ImageSidebar = ({ image, isOpen, activeTab, onTabChange, editorState, onUpdateState, onReset, onSave }: ImageSidebarProps) => {
+export const ImageSidebar = ({ image, open, tab, setTab, editorState, onUpdateState, onReset, onSave, onAddTag, onRemoveTag }: ImageSidebarProps) => {
+    const [newTag, setNewTag] = useState("");
+    const onTabChange = (tab: string) => {
+        if (tab === "info" || tab == "edit") {
+            setTab(tab);
+        }
+    }
     return (
         <div className={cn(
-            "w-80 border-l bg-background transition-all duration-300 ease-in-out flex flex-col h-full",
-            isOpen ? "translate-x-0" : "translate-x-full w-0 border-l-0 overflow-hidden"
+            "w-md border-l bg-background transition-all duration-300 ease-in-out flex flex-col h-full",
+            open ? "translate-x-0" : "translate-x-full w-0 border-l-0 overflow-hidden"
         )}>
-            <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col h-full">
+            <Tabs value={tab} onValueChange={onTabChange} className="flex-1 flex flex-col h-full">
                 <div className="px-6 pt-6 pb-2">
                     <TabsList className="w-full grid grid-cols-2">
-                        <TabsTrigger value="info">Info</TabsTrigger>
-                        <TabsTrigger value="edit">Edit</TabsTrigger>
+                        <TabsTrigger className="cursor-pointer" value="info">Info</TabsTrigger>
+                        <TabsTrigger className="cursor-pointer" value="edit">Edit</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -68,6 +79,35 @@ export const ImageSidebar = ({ image, isOpen, activeTab, onTabChange, editorStat
                             <div className="space-y-2">
                                 <span className="text-sm text-muted-foreground flex gap-2 items-center"><CalendarIcon className="w-4 h-4" /> Uploaded</span>
                                 <p className="font-medium">{new Date(image.uploaded_at * 1000).toLocaleString()}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><TagIcon className="w-4 h-4" /> Tags</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {image.tags?.map(tag => (
+                                        <Badge key={tag} variant="secondary" className="px-2 py-1 flex items-center gap-1 rounded-md">
+                                            {tag}
+                                            <button onClick={() => onRemoveTag(tag)} className="hover:text-destructive"><XIcon className="w-3 h-3" /></button>
+                                        </Badge>
+                                    ))}
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            className="h-7 w-24 px-2 text-xs"
+                                            placeholder="Add..."
+                                            value={newTag}
+                                            onChange={e => setNewTag(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && newTag.trim()) {
+                                                    onAddTag(newTag.trim());
+                                                    setNewTag('');
+                                                }
+                                            }}
+                                        />
+                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { if (newTag.trim()) { onAddTag(newTag.trim()); setNewTag(''); } }}>
+                                            <PlusIcon className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                             {/* ... 其他 Info ... */}
                         </div>
@@ -84,14 +124,14 @@ export const ImageSidebar = ({ image, isOpen, activeTab, onTabChange, editorStat
 
                         {/* Sliders */}
                         <div className="space-y-4">
-                            <SliderControl label="Brightness" icon={<SunIcon className="w-4 h-4" />} value={editorState.brightness} onChange={(v: number) => onUpdateState?.({ brightness: v })} />
-                            <SliderControl label="Contrast" icon={<ContrastIcon className="w-4 h-4" />} value={editorState.contrast} onChange={(v: number) => onUpdateState?.({ contrast: v })} />
-                            <SliderControl label="Saturation" icon={<DropletIcon className="w-4 h-4" />} value={editorState.saturation} onChange={(v: number) => onUpdateState?.({ saturation: v })} />
+                            <SliderControl label="Brightness" icon={<SunIcon className="w-4 h-4" />} value={editorState.brightness} onChange={(v: number) => onUpdateState({ brightness: v })} />
+                            <SliderControl label="Contrast" icon={<ContrastIcon className="w-4 h-4" />} value={editorState.contrast} onChange={(v: number) => onUpdateState({ contrast: v })} />
+                            <SliderControl label="Saturation" icon={<DropletIcon className="w-4 h-4" />} value={editorState.saturation} onChange={(v: number) => onUpdateState({ saturation: v })} />
                         </div>
 
                         <div className="space-y-4">
-                            <Button variant="secondary" className="w-full" onClick={onReset}><RotateCcwIcon className="w-4 h-4 mr-2" /> Reset</Button>
-                            <Button variant="default" className="w-full" ><SaveIcon className="w-4 h-4 mr-2" /> Save Copy</Button>
+                            <Button variant="secondary" className="w-full cursor-pointer" onClick={onReset}><RotateCcwIcon className="w-4 h-4 mr-2" /> Reset</Button>
+                            <Button variant="default" className="w-full cursor-pointer" onClick={onSave}><SaveIcon className="w-4 h-4 mr-2" /> Save & Exit</Button>
                         </div>
                     </TabsContent>
                 </div>
@@ -106,6 +146,6 @@ const SliderControl = ({ label, icon, value, onChange }: any) => (
             <label className="text-sm font-medium flex gap-2 items-center">{icon} {label}</label>
             <span className="text-xs text-muted-foreground">{value}%</span>
         </div>
-        <Slider value={[value]} min={0} max={200} onValueChange={([v]) => onChange(v)} />
+        <Slider className="cursor-pointer" value={[value]} min={0} max={200} onValueChange={([v]) => onChange(v)} />
     </div>
 );

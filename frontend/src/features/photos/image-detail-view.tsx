@@ -1,43 +1,38 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // 确保引入 AnimatePresence (虽然这里只用普通 motion 也可以)
-import { XIcon, PanelRightIcon, MaximizeIcon, ChevronRightIcon, ChevronLeftIcon, Disc } from "lucide-react";
+import { motion } from "framer-motion";
+import { XIcon, PanelRightIcon, ChevronRightIcon, ChevronLeftIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditorState } from "./image-sidebar";
 import { ImageSidebar } from "./image-sidebar";
-import { type Image, get_image_content } from "@/api";
+import { type Image } from "@/api";
 import { toast } from "sonner";
 import { ImageCanvas } from "./image-canvas";
 import { DiscardChangesModal } from "./discard-changes-modal";
+import { useImageBlob, useImages } from "./image-context";
 
 interface ImageDetailViewProps {
     image: Image;
     onClose: () => void;
-    token: string;
     onNext?: () => void;
     onPrev?: () => void;
+    tab: "info" | "edit";
+    setTab: (tab: "info" | "edit") => void;
 }
 
-export const ImageDetailView = ({ image, onClose, token, onNext, onPrev }: ImageDetailViewProps) => {
+export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }: ImageDetailViewProps) => {
+    const { uploadImages, addTag, removeTag } = useImages();
     const [showSidebar, setShowSidebar] = useState(true);
-    const [activeTab, setActiveTab] = useState("info");
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [showControls, setShowControls] = useState(true);
-    const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const { url: imageUrl } = useImageBlob(image.id);
+    console.log({ source: "ImageDetailView", photo_id: image.id, url: imageUrl });
+
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const { state: editorState, update: updateEditor, reset: resetEditor, hasChanges } = useEditorState();
 
     useEffect(() => {
-        let active = true;
-        const load = async () => {
-            try {
-                const url = await get_image_content(image.id, token);
-                if (active) setImageUrl(url);
-            } catch (e) { toast.error("Failed to load image"); }
-        };
-        load();
         resetEditor();
-        return () => { active = false; };
-    }, [image.id, token, resetEditor]);
+    }, [image.id, resetEditor]);
 
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;
@@ -64,20 +59,74 @@ export const ImageDetailView = ({ image, onClose, token, onNext, onPrev }: Image
         };
     }, []);
 
-    const controlCls = "rounded-full shadow-md size-10 bg-background/80 hover:bg-background/95";
+    const controlCls = "cursor-pointer rounded-full shadow-md size-10 bg-background/80 hover:bg-background/95";
     const controlVariants = {
         visible: { opacity: 1, pointerEvents: "auto" as const },
         hidden: { opacity: 0, pointerEvents: "none" as const },
     };
 
-    const handleClose = () => {
-        // if there is change unsaved
+    const [pendingAction, setPendingAction] = useState<"close" | "prev" | "next" | null>(null);
+
+    const hasPrev = !!onPrev;
+    const hasNext = !!onNext;
+
+    const performAction = (action: "close" | "prev" | "next") => {
+        switch (action) {
+            case "close":
+                onClose();
+                break;
+            case "prev":
+                onPrev?.();
+                break;
+            case "next":
+                onNext?.();
+                break;
+        }
+    }
+
+    const handleActionRequest = (action: "close" | "prev" | "next") => {
         if (hasChanges()) {
-            setShowDiscardModal(true);
+            setPendingAction(action);
             return;
         }
-        onClose();
+        performAction(action);
     }
+
+    const handleDiscardConfirm = () => {
+        if (pendingAction) {
+            performAction(pendingAction);
+            setPendingAction(null);
+        }
+    };
+
+    const handleKeepEditing = () => {
+        setPendingAction(null);
+    };
+
+    const handleSave = async () => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            toast.error("Canvas not ready");
+            return;
+        }
+
+        const toastId = toast.loading("Processing image...");
+        const blob = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, "image/jpeg", 1.0)
+        );
+        if (!blob) {
+            toast.dismiss(toastId);
+            toast.error("Failed to generate image blob");
+            return;
+        }
+
+        const fileName = `edited-${Date.now()}.jpg`;
+        const file = new File([blob], fileName, { type: "image/jpeg" });
+        await uploadImages([file]);
+        toast.success("Saved as new image!");
+        toast.dismiss(toastId);
+        onClose();
+    };
 
     return (
         <motion.div
@@ -94,33 +143,33 @@ export const ImageDetailView = ({ image, onClose, token, onNext, onPrev }: Image
                     animate={showControls ? "visible" : "hidden"}
                     transition={{ duration: 0.3 }}
                 >
-                    <Button variant="secondary" onClick={handleClose} className={controlCls}><XIcon /></Button>
+                    <Button variant="secondary" onClick={() => handleActionRequest("close")} className={controlCls}><XIcon /></Button>
                 </motion.div>
 
                 {/* Controls Overlay: Prev Button */}
                 {
-                    onPrev && (
+                    hasPrev && (
                         <motion.div
                             className="absolute -translate-y-1/2 top-1/2 left-4 z-20"
                             variants={controlVariants}
                             animate={showControls ? "visible" : "hidden"}
                             transition={{ duration: 0.3 }}
                         >
-                            <Button variant="secondary" onClick={onPrev} className={controlCls}><ChevronLeftIcon /></Button>
+                            <Button variant="secondary" onClick={() => handleActionRequest("prev")} className={controlCls}><ChevronLeftIcon /></Button>
                         </motion.div>
                     )
                 }
 
                 {/* Controls Overlay: Next Button */}
                 {
-                    onNext && (
+                    hasNext && (
                         <motion.div
                             className="absolute -translate-y-1/2 top-1/2 right-4 z-20"
                             variants={controlVariants}
                             animate={showControls ? "visible" : "hidden"}
                             transition={{ duration: 0.3 }}
                         >
-                            <Button variant="secondary" onClick={onNext} className={controlCls}><ChevronRightIcon /></Button>
+                            <Button variant="secondary" onClick={() => handleActionRequest("next")} className={controlCls}><ChevronRightIcon /></Button>
                         </motion.div>
                     )
                 }
@@ -139,29 +188,31 @@ export const ImageDetailView = ({ image, onClose, token, onNext, onPrev }: Image
                 <div className="flex-1 bg-black/80 flex items-center justify-center">
                     {
                         imageUrl && (
-                            <ImageCanvas imageSrc={imageUrl} brightness={editorState.brightness} contrast={editorState.contrast} saturation={editorState.saturation} />
+                            <ImageCanvas className="max-h-full max-w-full" ref={canvasRef} imageSrc={imageUrl} brightness={editorState.brightness} contrast={editorState.contrast} saturation={editorState.saturation} />
                         )
                     }
                 </div>
             </div >
 
             {/* Sidebar */}
-            < ImageSidebar
+            <ImageSidebar
                 image={image}
-                isOpen={showSidebar}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
+                open={showSidebar}
+                tab={tab}
+                setTab={setTab}
                 editorState={editorState}
                 onUpdateState={updateEditor}
                 onReset={resetEditor}
+                onSave={handleSave}
+                onAddTag={(tag: string) => addTag(image.id, tag)}
+                onRemoveTag={(tag: string) => removeTag(image.id, tag)}
             />
 
             {/* Modal */}
             <DiscardChangesModal
-                open={showDiscardModal}
-                onOpenChange={open => setShowDiscardModal(open)}
-                onDiscard={onClose}
-                onKeepEditing={() => setShowDiscardModal(false)}
+                open={pendingAction !== null}
+                onDiscard={handleDiscardConfirm}
+                onKeepEditing={handleKeepEditing}
             />
         </motion.div >
     );

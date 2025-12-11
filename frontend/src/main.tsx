@@ -13,11 +13,15 @@ import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
 
 import HomePage from './features/home/home-page.tsx'
-import DashboardPage from './features/dashboard/dashboard-page.tsx'
+import PhotosPage from './features/photos/photos-page.tsx'
 import LoginPage from './features/auth/login-page.tsx'
 import RegisterPage from './features/auth/register-page.tsx'
 import { AuthProvider } from './features/auth/hooks.tsx'
 import { ThemeProvider } from './features/theme/hooks.tsx'
+import { DashboardLayout } from './features/layout/dashboard-layout.tsx'
+import { AuthLayout } from './features/auth/auth-layout.tsx'
+import FavoritesPage from './features/favorites/favorites-page.tsx'
+import TrashPage from './features/trash/trash-page.tsx'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -32,7 +36,7 @@ const rootRoute = createRootRoute({
       </div>
       <hr /> */}
       <Outlet />
-      <TanStackRouterDevtools />
+      {/* <TanStackRouterDevtools /> */}
     </>
   ),
 })
@@ -43,25 +47,61 @@ const indexRoute = createRoute({
   component: HomePage,
 })
 
-const loginRoute = createRoute({
+const dashboardLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: 'dashboard-layout',
+  component: DashboardLayout,
+})
+
+const authLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'auth-layout',
+  component: AuthLayout,
+})
+
+const photosRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: '/photos',
+  component: PhotosPage,
+})
+
+
+const favoritesRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: '/favorites',
+  component: FavoritesPage,
+})
+
+const trashRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: '/trash',
+  component: TrashPage,
+})
+
+const loginRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
   path: '/login',
   component: LoginPage,
 })
 
 const registerRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authLayoutRoute,
   path: '/register',
   component: RegisterPage,
 })
 
-const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/dashboard',
-  component: DashboardPage,
-})
-
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, registerRoute, dashboardRoute])
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  authLayoutRoute.addChildren([
+    loginRoute,
+    registerRoute,
+  ]),
+  dashboardLayoutRoute.addChildren([
+    photosRoute,
+    favoritesRoute,
+    trashRoute,
+  ]),
+])
 
 const router = createRouter({
   routeTree,

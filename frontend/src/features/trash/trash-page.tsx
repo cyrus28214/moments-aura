@@ -1,0 +1,13 @@
+import { Trash2Icon } from "lucide-react";
+
+export default function TrashPage() {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+            <div className="p-4 bg-muted rounded-full">
+                <Trash2Icon className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-semibold">Trash</h2>
+            <p>Deleted photos will support recovery soon.</p>
+        </div>
+    );
+}
