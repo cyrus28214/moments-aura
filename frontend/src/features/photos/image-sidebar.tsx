@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, SaveIcon, TagIcon, PlusIcon, XIcon } from "lucide-react";
+import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, SaveIcon, TagIcon, PlusIcon, XIcon, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
@@ -79,6 +79,11 @@ export const ImageSidebar = ({ image, open, tab, setTab, editorState, onUpdateSt
                             <div className="space-y-2">
                                 <span className="text-sm text-muted-foreground flex gap-2 items-center"><CalendarIcon className="w-4 h-4" /> Uploaded</span>
                                 <p className="font-medium">{new Date(image.uploaded_at * 1000).toLocaleString()}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Resolution</span>
+                                <p className="font-medium">{image.width} x {image.height}</p>
                             </div>
 
                             <div className="space-y-2">

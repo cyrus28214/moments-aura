@@ -196,7 +196,6 @@ export default function PhotosPage() {
 
 
       {
-        /* Image Grid */
         images.length === 0 ? (
           <div className="px-6 py-4 flex-1 flex flex-col items-center justify-center">
             <p className="text-muted-foreground">No photos</p>

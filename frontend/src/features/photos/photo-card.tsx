@@ -92,12 +92,12 @@ export const PhotoCard = ({
                                 <InfoIcon className="w-4 h-4 mr-2" />
                                 View Info
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={onSlideshow}>
-                                <PlayIcon className="w-4 h-4 mr-2" />
-                                Play
-                            </DropdownMenuItem>
                             {!isSelectMode && (
                                 <>
+                                    <DropdownMenuItem onClick={onSlideshow}>
+                                        <PlayIcon className="w-4 h-4 mr-2" />
+                                        Slideshow
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
                                         <Trash2Icon className="w-4 h-4 mr-2" />

@@ -149,15 +149,18 @@ export const useImageBlob = (photo_id: string) => {
     const [url, setUrl] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        // setUrl(undefined); // 如果photo_id改变了，不能再使用上次的，设置成undefined
+        let isActive = true;
 
         const load = async () => {
             const res = await fetchBlobInternal(photo_id);
-            setUrl(res);
+            if (isActive) {
+                setUrl(res);
+            }
         };
 
         load();
 
+        return () => { isActive = false; };
     }, [photo_id, fetchBlobInternal]);
 
     return { url };
