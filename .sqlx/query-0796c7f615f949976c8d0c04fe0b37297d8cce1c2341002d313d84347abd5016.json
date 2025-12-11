@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            \"photo\".\"id\",\n            \"photo\".\"image_hash\",\n            \"photo\".\"uploaded_at\",\n            \"image\".\"width\",\n            \"image\".\"height\",\n            COALESCE(ARRAY_AGG(\"tag\".\"name\") FILTER (WHERE \"tag\".\"name\" IS NOT NULL), '{}') as \"tags!\"\n        FROM \"photo\"\n        JOIN \"image\" ON \"photo\".\"image_hash\" = \"image\".\"hash\"\n        LEFT JOIN \"photo_tag\" ON \"photo\".\"id\" = \"photo_tag\".\"photo_id\"\n        LEFT JOIN \"tag\" ON \"photo_tag\".\"tag_id\" = \"tag\".\"id\"\n\n        WHERE \"photo\".\"user_id\" = $1\n        AND ($2::text[] IS NULL OR EXISTS (\n            SELECT 1 FROM \"photo_tag\" \"pt\" \n            JOIN \"tag\" \"t\" ON \"pt\".\"tag_id\" = \"t\".\"id\"\n            WHERE \"pt\".\"photo_id\" = \"photo\".\"id\" AND \"t\".\"name\" = ANY($2::text[])\n        ))\n        AND ($3::boolean IS NOT TRUE OR NOT EXISTS (\n            SELECT 1 FROM \"photo_tag\" \"pt\" WHERE \"pt\".\"photo_id\" = \"photo\".\"id\"\n        ))\n        GROUP BY \"photo\".\"id\", \"image\".\"width\", \"image\".\"height\"\n        ORDER BY \"photo\".\"uploaded_at\" DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "image_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "tags!",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "0796c7f615f949976c8d0c04fe0b37297d8cce1c2341002d313d84347abd5016"
+}

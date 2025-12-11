@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            \"image\".\"hash\",\n            \"image\".\"extension\"\n        FROM \"photo\"\n        JOIN \"image\" ON \"photo\".\"image_hash\" = \"image\".\"hash\"\n        WHERE \"photo\".\"id\" = $1 AND \"photo\".\"user_id\" = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "extension",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "bcdd7ae2b248ad309fe0cb487d75b496604d95f4a41e480cd6463ffc9cb0816e"
+}

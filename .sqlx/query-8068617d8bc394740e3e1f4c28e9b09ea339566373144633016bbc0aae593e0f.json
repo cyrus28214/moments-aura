@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \"t\".\"name\", COUNT(\"pt\".\"photo_id\") as \"count!\"\n        FROM \"tag\" \"t\"\n        JOIN \"photo_tag\" \"pt\" ON \"t\".\"id\" = \"pt\".\"tag_id\"\n        JOIN \"photo\" \"p\" ON \"pt\".\"photo_id\" = \"p\".\"id\"\n        WHERE \"p\".\"user_id\" = $1\n        GROUP BY \"t\".\"name\"\n        HAVING COUNT(\"pt\".\"photo_id\") > 0\n        ORDER BY \"count!\" DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "8068617d8bc394740e3e1f4c28e9b09ea339566373144633016bbc0aae593e0f"
+}

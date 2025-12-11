@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH inserted AS (\n                INSERT INTO tag (user_id, name) VALUES ($1, $2)\n                ON CONFLICT (user_id, name) DO NOTHING\n                RETURNING id\n            )\n            SELECT id FROM inserted\n            UNION ALL\n            SELECT id FROM tag WHERE user_id = $1 AND name = $2\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "eeb689d12a21b649514a71ed20a32533f4c08828088ec6bd4e5e742668c3c737"
+}
