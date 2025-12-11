@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks';
-import { ImagesProvider, useImages } from '@/features/photos/image-context';
+import { ImagesProvider } from '@/features/photos/image-context';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -154,7 +154,7 @@ function DashboardLayoutContent({ onLogout }: { onLogout: () => void }) {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-y-scroll">
                 <DashboardContext.Provider value={{ sidebarOpen, setSidebarOpen }}>
                     <Outlet />
                 </DashboardContext.Provider>

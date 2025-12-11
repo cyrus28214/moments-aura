@@ -59,8 +59,8 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
         };
     }, []);
 
-    const controlCls = "cursor-pointer rounded-full shadow-md size-10 bg-background/80 hover:bg-background/95";
-    const controlVariants = {
+    const overlayCls = "bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm cursor-pointer rounded-full size-10";
+    const overlayVariants = {
         visible: { opacity: 1, pointerEvents: "auto" as const },
         hidden: { opacity: 0, pointerEvents: "none" as const },
     };
@@ -128,6 +128,7 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
         onClose();
     };
 
+
     return (
         <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -139,11 +140,11 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                 {/* Controls Overlay: Close Button */}
                 <motion.div
                     className="absolute top-4 left-4 z-20"
-                    variants={controlVariants}
+                    variants={overlayVariants}
                     animate={showControls ? "visible" : "hidden"}
                     transition={{ duration: 0.3 }}
                 >
-                    <Button variant="secondary" onClick={() => handleActionRequest("close")} className={controlCls}><XIcon /></Button>
+                    <Button className={overlayCls} onClick={() => handleActionRequest("close")}><XIcon /></Button>
                 </motion.div>
 
                 {/* Controls Overlay: Prev Button */}
@@ -151,11 +152,11 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                     hasPrev && (
                         <motion.div
                             className="absolute -translate-y-1/2 top-1/2 left-4 z-20"
-                            variants={controlVariants}
+                            variants={overlayVariants}
                             animate={showControls ? "visible" : "hidden"}
                             transition={{ duration: 0.3 }}
                         >
-                            <Button variant="secondary" onClick={() => handleActionRequest("prev")} className={controlCls}><ChevronLeftIcon /></Button>
+                            <Button className={overlayCls} onClick={() => handleActionRequest("prev")}><ChevronLeftIcon /></Button>
                         </motion.div>
                     )
                 }
@@ -165,11 +166,11 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                     hasNext && (
                         <motion.div
                             className="absolute -translate-y-1/2 top-1/2 right-4 z-20"
-                            variants={controlVariants}
+                            variants={overlayVariants}
                             animate={showControls ? "visible" : "hidden"}
                             transition={{ duration: 0.3 }}
                         >
-                            <Button variant="secondary" onClick={() => handleActionRequest("next")} className={controlCls}><ChevronRightIcon /></Button>
+                            <Button className={overlayCls} onClick={() => handleActionRequest("next")}><ChevronRightIcon /></Button>
                         </motion.div>
                     )
                 }
@@ -177,11 +178,11 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                 {/* Sidebar Toggle */}
                 <motion.div
                     className="absolute top-4 right-4 z-20"
-                    variants={controlVariants}
+                    variants={overlayVariants}
                     animate={showControls ? "visible" : "hidden"}
                     transition={{ duration: 0.3 }}
                 >
-                    <Button variant="secondary" onClick={() => setShowSidebar(!showSidebar)} className={controlCls}><PanelRightIcon /></Button>
+                    <Button className={overlayCls} onClick={() => setShowSidebar(!showSidebar)}><PanelRightIcon /></Button>
                 </motion.div>
 
                 {/* Viewer */}

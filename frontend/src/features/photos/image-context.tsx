@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { add_tags_batch, delete_images, delete_tags_batch, get_image_content, type Image, list_images, upload_image } from '@/api';
+import { add_tags_batch, delete_images, delete_tags_batch, get_image_content, type Image, list_images, upload_image, list_tags, type TagWithCount } from '@/api';
 import { toast } from 'sonner';
 
 interface ImagesContextType {
@@ -13,6 +13,9 @@ interface ImagesContextType {
 
     // 内部方法
     fetchBlobInternal: (photo_id: string) => Promise<string | undefined>;
+
+    tags: TagWithCount[];
+    refreshTags: () => Promise<void>;
 }
 
 const ImagesContext = createContext<ImagesContextType | undefined>(undefined);
@@ -21,6 +24,8 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
     const [images, setImages] = useState<Image[]>([]);
     const blobCacheRef = useRef<Map<string, string>>(new Map());
     const [isLoading, setIsLoading] = useState(false);
+
+    const [tags, setTags] = useState<TagWithCount[]>([]);
 
     const refreshImages = useCallback(async () => {
         if (!token) return;
@@ -34,6 +39,16 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
             toast.error("Failed to refresh gallery");
         } finally {
             setIsLoading(false);
+        }
+    }, [token]);
+
+    const refreshTags = useCallback(async () => {
+        if (!token) return;
+        try {
+            const { tags } = await list_tags(token);
+            setTags(tags);
+        } catch (error) {
+            console.error("Failed to fetch tags", error);
         }
     }, [token]);
 
@@ -67,6 +82,7 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
         try {
             await delete_images(photo_ids, token);
             refreshImages();
+            refreshTags();
         } catch (error) {
             console.error("Failed to delete image", error);
             toast.error("Failed to delete image");
@@ -77,6 +93,7 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
         try {
             await add_tags_batch({ tag_names: [tag], photo_ids: [photo_id] }, token);
             refreshImages();
+            refreshTags();
         } catch (error) {
             console.error(error);
             toast.error("Failed to add tag");
@@ -87,6 +104,7 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
         try {
             await delete_tags_batch({ tag_names: [tag], photo_ids: [photo_id] }, token);
             refreshImages();
+            refreshTags();
         } catch (error) {
             console.error(error);
             toast.error("Failed to remove tag");
@@ -95,7 +113,8 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
 
     useEffect(() => {
         refreshImages();
-    }, [refreshImages]);
+        refreshTags();
+    }, [refreshImages, refreshTags]);
 
     const value = {
         images,
@@ -105,7 +124,9 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
         deleteImages,
         addTag,
         removeTag,
-        fetchBlobInternal
+        fetchBlobInternal,
+        tags,
+        refreshTags
     };
 
     return (
@@ -126,8 +147,6 @@ export const useImages = () => {
 export const useImageBlob = (photo_id: string) => {
     const { fetchBlobInternal } = useImages();
     const [url, setUrl] = useState<string | undefined>(undefined);
-
-    console.log({ source: "useImageBlob", photo_id, url });
 
     useEffect(() => {
         // setUrl(undefined); // 如果photo_id改变了，不能再使用上次的，设置成undefined

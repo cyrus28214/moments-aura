@@ -146,3 +146,21 @@ export const delete_tags_batch = async (payload: TagBatchPayload, token: string)
   })
   return response.data
 }
+
+export interface TagWithCount {
+  name: string
+  count: number
+}
+
+export interface ListTagsResponse {
+  tags: TagWithCount[]
+}
+
+export const list_tags = async (token: string): Promise<ListTagsResponse> => {
+  const response = await apiClient.get('/tags/list', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  return response.data
+}

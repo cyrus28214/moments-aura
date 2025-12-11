@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
     MoreVerticalIcon, HeartIcon, SquareMousePointerIcon,
-    EditIcon, InfoIcon, Trash2Icon
+    EditIcon, InfoIcon, Trash2Icon, PlayIcon
 } from 'lucide-react';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -27,6 +27,7 @@ interface PhotoCardProps {
     onEdit: () => void;
     onInfo: () => void;
     onDelete: () => void;
+    onSlideshow: () => void;
 }
 
 export const PhotoCard = ({
@@ -37,7 +38,8 @@ export const PhotoCard = ({
     onToggleSelect,
     onEdit,
     onInfo,
-    onDelete
+    onDelete,
+    onSlideshow
 }: PhotoCardProps) => {
     const { url } = useImageBlob(image.id);
 
@@ -69,7 +71,7 @@ export const PhotoCard = ({
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" className="size-8 cursor-pointer rounded-full shadow-md bg-background/80 hover:bg-background/95">
+                            <Button variant="secondary" className="size-8 cursor-pointer rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm">
                                 <MoreVerticalIcon className="size-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -90,6 +92,10 @@ export const PhotoCard = ({
                                 <InfoIcon className="w-4 h-4 mr-2" />
                                 View Info
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={onSlideshow}>
+                                <PlayIcon className="w-4 h-4 mr-2" />
+                                Play
+                            </DropdownMenuItem>
                             {!isSelectMode && (
                                 <>
                                     <DropdownMenuSeparator />
@@ -106,7 +112,7 @@ export const PhotoCard = ({
                 {image.tags && image.tags.length > 0 && (
                     <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         {image.tags.map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 text-xs bg-black/50 text-white rounded-md backdrop-blur-sm">
+                            <span key={tag} className="px-2 py-1 text-xs bg-black/50 text-white rounded-md backdrop-blur-sm">
                                 {tag}
                             </span>
                         ))}

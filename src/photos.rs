@@ -113,6 +113,11 @@ pub struct ListParams {
     untagged: Option<bool>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ListImagesResponse {
+    photos: Vec<Photo>,
+}
+
 pub async fn list_handler(
     State(db): State<PgPool>,
     AuthUser { user_id }: AuthUser,

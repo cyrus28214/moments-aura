@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, CropIcon, RotateCwIcon, SaveIcon, ChevronDownIcon, FilePlusIcon, TagIcon, PlusIcon, XIcon } from "lucide-react";
+import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, SaveIcon, TagIcon, PlusIcon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 

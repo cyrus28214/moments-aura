@@ -51,7 +51,7 @@ const ConfirmDeleteModal = ({
                     </AlertDialogCancel>
 
                     <AlertDialogAction
-                        onClick={(e) => {
+                        onClick={() => {
                             onConfirm();
                         }}
                         className={cn(buttonVariants({ variant: "destructive" }), "flex-1")}
