@@ -1,0 +1,49 @@
+name: moments-aura 
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: moments-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Containerfile 
+    container_name: moments-api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy 
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      DASHBOARD_API_KEY: ${DASHBOARD_API_KEY}
+      RUST_LOG: ${RUST_LOG}
+    volumes:
+      - ./data:/app/data
+      
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    container_name: moments-web
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${PORT:-80}:80"
+
+volumes:
+  db_data:

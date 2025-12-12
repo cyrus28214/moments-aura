@@ -6,7 +6,6 @@ use moments_aura::{
 use reverse_geocoder::ReverseGeocoder;
 use std::{path::Path, sync::Arc};
 use tower_http::trace::TraceLayer;
-use tracing::{info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use axum::{

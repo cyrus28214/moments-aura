@@ -13,9 +13,10 @@ RUN cargo build --release
 
 RUN rm -rf src
 
-COPY src ./src
+COPY migrations ./migrations
+COPY .sqlx ./.sqlx
 
-COPY .sqlx .
+COPY src ./src
 
 ENV SQLX_OFFLINE=true
 RUN cargo build --release
@@ -29,9 +30,9 @@ RUN apt-get update && \
     apt-get install -y libssl-dev ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/moments_aura ./server
+COPY --from=builder /app/target/release/moments-aura ./server
 
-COPY deploy/config.prod.toml ./config.toml
+COPY config.toml ./config.toml
 
 EXPOSE 8080
 

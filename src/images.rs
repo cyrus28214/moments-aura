@@ -4,7 +4,7 @@ use exif::Exif;
 use image::ImageReader;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
-use std::{collections::HashMap, io::Cursor};
+use std::io::Cursor;
 
 use crate::{exif::get_image_exif, infra::storage::LocalStorage};
 
@@ -112,5 +112,6 @@ pub async fn save_image(
             )
         })?;
     }
+
     Ok(info)
 }
