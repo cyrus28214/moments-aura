@@ -15,7 +15,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # 复制源码
-COPY . .
+COPY src ./src
+COPY index.html vite.config.ts tsconfig.json .
 
 # 构建 (生成 dist 目录)
 RUN pnpm build
