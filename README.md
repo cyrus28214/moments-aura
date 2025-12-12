@@ -2,22 +2,22 @@
 
 ![Moments Aura Banner](docs/banner.png)
 
-**Moments Aura** is a modern, self-hosted photo management solution built for performance and user experience. It combines a high-performance Rust backend with a sleek, responsive React frontend to help you organize, edit, and rediscover your precious memories.
+**Moments Aura** is a AI-powered, modern and self-hosted photo management solution built for performance and user experience. It combines a high-performance Rust backend with a sleek, responsive React frontend to help you organize, edit, and rediscover your precious memories.
 
-> 🚧 **Note**: This project is currently under active development.
+>  **Note**: This project is currently under active development.
 
 ## ✨ Features
 
-- **🚀 High Performance**: Built with Rust (Axum) and highly optimized for speed.
-- **🖼️ Smart Management**:
+- **High Performance**: Built with Rust (Axum) and highly optimized for speed.
+- **Smart Management**:
   - Auto-extract EXIF data (Date, Camera, Lens, etc.).
   - **AI-Powered Tagging**: Automatically tag photos using local/cloud AI models.
   - Manual tagging and batch operations.
-- **🎨 Rich Editing**: Built-in image editor for adjustments (Brightness, Contrast, Saturation) without destructive changes.
-- **📱 Mobile First**: Fully responsive design with mobile-optimized navigation (Drawers) and adaptive grids.
-- **🔍 Advanced Search**: Filter photos by date, tags, and metadata.
-- **🐳 Docker Ready**: Easy deployment with Docker Compose / Podman.
-- **🌗 Dark Mode**: Beautiful dark/light mode support.
+- **Rich Editing**: Built-in image editor for adjustments (Brightness, Contrast, Saturation) without destructive changes.
+- **Mobile First**: Fully responsive design with mobile-optimized navigation (Drawers) and adaptive grids.
+- **Advanced Search**: Filter photos by date, tags, and metadata.
+- **Docker Ready**: Easy deployment with Docker Compose / Podman.
+- **Dark Mode**: Beautiful dark/light mode support.
 
 ## 🛠️ Tech Stack
 
