@@ -72,7 +72,7 @@ The Easiest way to run Moments Aura is using Docker Compose / Podman Compose.
 1. **Setup Database**
    ```bash
    # Start Postgres
-   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=password postgres:alpine
+   sudo systemctl start postgresql
    
    # Create DB & Tables
    cargo sqlx database create

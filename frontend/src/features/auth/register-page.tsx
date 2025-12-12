@@ -9,7 +9,7 @@ import { X, Loader2 } from 'lucide-react'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { refreshAuth } = useAuth()
+  const { setToken } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -56,7 +56,8 @@ export default function RegisterPage() {
 
     try {
       const result = await register({ name, email, password })
-      await refreshAuth(result.token)
+      // Use setToken to persist the token immediately, this triggers the AuthProvider effect
+      setToken(result.token)
       setError(null)
       navigate({ to: '/photos' })
     } catch (err: any) {
