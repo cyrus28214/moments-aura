@@ -84,21 +84,25 @@ impl AiService {
             }]),
         };
 
+        let url = format!("{}/chat/completions", self.config.base_url);
+
         let response = self
             .client
-            .post(&self.config.base_url)
+            .post(&url)
             .header("Authorization", format!("Bearer {}", self.config.api_key))
             .json(&request)
             .send()
             .await
             .map_err(|e| format!("Request failed: {}", e))?;
 
-        if !response.status().is_success() {
+        let status_code = response.status();
+
+        if !status_code.is_success() {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(format!("API error: {}", error_text));
+            return Err(format!("API error: {} (status code: {})", error_text, status_code));
         }
 
         let response_data: ChatCompletionResponse = response
