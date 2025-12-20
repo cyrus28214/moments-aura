@@ -2,7 +2,7 @@ name: moments-aura
 
 services:
   db:
-    image: postgres:18-alpine
+    image: docker.io/postgres:18-alpine
     container_name: moments-db
     restart: always
     environment:
