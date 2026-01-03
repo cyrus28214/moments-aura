@@ -1,6 +1,6 @@
 # Moments Aura
 
-![Moments Aura Banner](docs/banner.png)
+![Moments Aura Banner](docs/images/banner.png)
 
 **Moments Aura** is a AI-powered, modern and self-hosted photo management solution built for performance and user experience. It combines a high-performance Rust backend with a sleek, responsive React frontend to help you organize, edit, and rediscover your precious memories.
 
@@ -10,7 +10,7 @@
 
 - **High Performance**: Built with Rust (Axum) and highly optimized for speed.
 - **Smart Management**:
-  - Auto-extract EXIF data (Date, Camera, Lens, etc.).
+  - Auto-extract EXIF data.
   - **AI-Powered Tagging**: Automatically tag photos using local/cloud AI models.
   - Manual tagging and batch operations.
 - **Rich Editing**: Built-in image editor for adjustments (Brightness, Contrast, Saturation) without destructive changes.
@@ -113,8 +113,7 @@ Key configuration options in `config.toml` and environment variables:
 
 - [x] AI Tag Recommendations
 - [x] Mobile Responsiveness
+- [x] Landing Page
 - [ ] Favorite
 - [ ] Trash
 - [ ] Enhanced Editing
-- [ ] Landing Page
-- [ ] Albums

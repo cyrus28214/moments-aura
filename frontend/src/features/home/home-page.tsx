@@ -72,14 +72,18 @@ export default function HomePage() {
               </Link> */}
             </div>
             
-            {/* Hero Image / Placeholder */}
-            <div className="mt-16 rounded-xl border bg-muted/50 shadow-2xl overflow-hidden aspect-video w-full max-w-5xl mx-auto relative group">
-               <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
-                  <div className="text-center space-y-2">
-                    <CameraIcon className="w-16 h-16 mx-auto opacity-50" />
-                    <p>App Screenshot Preview</p>
-                  </div>
-               </div>
+            {/* Hero Image */}
+            <div className="mt-16 rounded-xl border bg-muted/50 shadow-2xl overflow-hidden w-full max-w-5xl mx-auto relative group">
+               <img 
+                 src="/images/ui-light.png" 
+                 alt="App Screenshot Light" 
+                 className="w-full h-auto dark:hidden block"
+               />
+               <img 
+                 src="/images/ui-dark.png" 
+                 alt="App Screenshot Dark" 
+                 className="w-full h-auto hidden dark:block"
+               />
             </div>
           </div>
         </section>
