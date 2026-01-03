@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { add_tags_batch, delete_images, delete_tags_batch, get_image_content, type Image, list_images, upload_image, list_tags, type TagWithCount } from '@/api';
+import { add_tags_batch, delete_images, delete_tags_batch, get_image_content, get_image_thumbnail, type Image, list_images, upload_image, list_tags, type TagWithCount } from '@/api';
 import { toast } from 'sonner';
 
 interface ImagesContextType {
@@ -12,7 +12,7 @@ interface ImagesContextType {
     removeTag: (photo_id: string, tag: string) => Promise<void>;
 
     // 内部方法
-    fetchBlobInternal: (photo_id: string) => Promise<string | undefined>;
+    fetchBlobInternal: (photo_id: string, type?: 'content' | 'thumbnail') => Promise<string | undefined>;
 
     tags: TagWithCount[];
     refreshTags: () => Promise<void>;
@@ -52,17 +52,20 @@ export const ImagesProvider = ({ token, children }: { token: string, children: R
         }
     }, [token]);
 
-    const fetchBlobInternal = useCallback(async (photo_id: string) => {
-        if (blobCacheRef.current.has(photo_id)) {
-            return blobCacheRef.current.get(photo_id);
+    const fetchBlobInternal = useCallback(async (photo_id: string, type: 'content' | 'thumbnail' = 'content') => {
+        const cacheKey = `${photo_id}_${type}`;
+        if (blobCacheRef.current.has(cacheKey)) {
+            return blobCacheRef.current.get(cacheKey);
         }
 
         try {
-            const blobUrl = await get_image_content(photo_id, token);
-            blobCacheRef.current.set(photo_id, blobUrl);
+            const blobUrl = type === 'thumbnail'
+                ? await get_image_thumbnail(photo_id, token)
+                : await get_image_content(photo_id, token);
+            blobCacheRef.current.set(cacheKey, blobUrl);
             return blobUrl;
         } catch (error) {
-            console.error(`Failed to load image ${photo_id}`, error);
+            console.error(`Failed to load image ${photo_id} (${type})`, error);
             return undefined;
         }
 
@@ -144,7 +147,7 @@ export const useImages = () => {
     return context;
 };
 
-export const useImageBlob = (photo_id: string) => {
+export const useImageBlob = (photo_id: string, type: 'content' | 'thumbnail' = 'content') => {
     const { fetchBlobInternal } = useImages();
     const [url, setUrl] = useState<string | undefined>(undefined);
 
@@ -152,7 +155,7 @@ export const useImageBlob = (photo_id: string) => {
         let isActive = true;
 
         const load = async () => {
-            const res = await fetchBlobInternal(photo_id);
+            const res = await fetchBlobInternal(photo_id, type);
             if (isActive) {
                 setUrl(res);
             }
@@ -161,7 +164,7 @@ export const useImageBlob = (photo_id: string) => {
         load();
 
         return () => { isActive = false; };
-    }, [photo_id, fetchBlobInternal]);
+    }, [photo_id, fetchBlobInternal, type]);
 
     return { url };
 };

@@ -74,6 +74,10 @@ fn create_router(app_state: AppState) -> Router {
         .route(
             "/photos/{photo_id}/content",
             routing::get(photos::get_content_handler),
+        )
+        .route(
+            "/photos/{photo_id}/thumbnail",
+            routing::get(photos::get_thumbnail_handler),
         );
 
     if app_state.ai_service.is_some() {

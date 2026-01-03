@@ -241,6 +241,44 @@ pub async fn get_content_handler(
         .into_response())
 }
 
+pub async fn get_thumbnail_handler(
+    State(storage): State<LocalStorage>,
+    State(db): State<PgPool>,
+    Path(photo_id): Path<Uuid>,
+    AuthUser { user_id }: AuthUser,
+) -> Result<Response, (StatusCode, String)> {
+    let photo = sqlx::query!(
+        r#"SELECT
+            "image"."hash"
+        FROM "photo"
+        JOIN "image" ON "photo"."image_hash" = "image"."hash"
+        WHERE "photo"."id" = $1 AND "photo"."user_id" = $2"#,
+        photo_id,
+        user_id
+    )
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| {
+        tracing::error!(error = ?e, "Failed to fetch image");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
+    })?
+    .ok_or_else(|| (StatusCode::NOT_FOUND, "Image not found".to_string()))?;
+
+    let bytes = images::get_or_create_thumbnail(&photo.hash, &storage)?;
+
+    Ok((
+        [
+            (header::CONTENT_TYPE, "image/jpeg"),
+            (header::CACHE_CONTROL, "public, max-age=31536000"),
+        ],
+        bytes,
+    )
+        .into_response())
+}
+
 #[derive(Deserialize)]
 pub struct DeleteBatchPayload {
     image_ids: Vec<String>,

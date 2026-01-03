@@ -120,6 +120,16 @@ export const get_image_content = async (image_id: string, token: string): Promis
   return URL.createObjectURL(response.data)
 }
 
+export const get_image_thumbnail = async (image_id: string, token: string): Promise<string> => {
+  const response = await apiClient.get(`/photos/${image_id}/thumbnail`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    responseType: 'blob'
+  })
+  return URL.createObjectURL(response.data)
+}
+
 export const delete_images = async (image_ids: string[], token: string): Promise<DeleteImagesResult> => {
   const response = await apiClient.post('/photos/delete-batch', { image_ids }, {
     headers: {

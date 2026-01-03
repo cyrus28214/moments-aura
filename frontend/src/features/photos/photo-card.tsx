@@ -41,7 +41,7 @@ export const PhotoCard = ({
     onDelete,
     onSlideshow
 }: PhotoCardProps) => {
-    const { url } = useImageBlob(image.id);
+    const { url } = useImageBlob(image.id, 'thumbnail');
 
     return (
         <motion.div layout className="aspect-square flex items-center justify-center">

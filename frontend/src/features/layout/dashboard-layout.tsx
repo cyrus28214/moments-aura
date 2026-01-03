@@ -14,7 +14,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MonitorIcon, MoonIcon, SunIcon, HeartIcon, Trash2Icon, LogOutIcon, ImageIcon } from "lucide-react"
+import { HeartIcon, Trash2Icon, LogOutIcon, ImageIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react"
 import {
     Sheet,
     SheetContent,
