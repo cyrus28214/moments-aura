@@ -2,7 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { SparklesIcon, ShieldCheckIcon, ZapIcon, ArrowRightIcon } from 'lucide-react'
 import { PublicHeader } from '../layout/public-header'
-
+import uiLight from '@/assets/ui-light.png'
+import uiDark from '@/assets/ui-dark.png'
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -68,12 +69,12 @@ export default function HomePage() {
             {/* Hero Image */}
             <div className="mt-16 rounded-xl border bg-muted/50 shadow-2xl overflow-hidden w-full max-w-5xl mx-auto relative group">
                <img 
-                 src="/images/ui-light.png" 
+                 src={uiLight} 
                  alt="App Screenshot Light" 
                  className="w-full h-auto dark:hidden block"
                />
                <img 
-                 src="/images/ui-dark.png" 
+                 src={uiDark} 
                  alt="App Screenshot Dark" 
                  className="w-full h-auto hidden dark:block"
                />
