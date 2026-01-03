@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { CameraIcon, SparklesIcon, ShieldCheckIcon, ZapIcon, ArrowRightIcon } from 'lucide-react'
-import { ThemeToggle } from '../theme/theme-toggle'
+import { PublicHeader } from '../layout/public-header'
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -22,25 +22,18 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background/80 backdrop-blur-sm z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            {/* <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
-              <CameraIcon className="w-5 h-5" />
-            </div> */}
-            <span>Moments Aura</span>
-          </div>
-          <nav className="flex items-center gap-4">
-            <ThemeToggle />
+      <PublicHeader 
+        actions={
+          <>
             <Link to="/login">
               <Button variant="ghost">Log in</Button>
             </Link>
             <Link to="/register">
               <Button>Sign up</Button>
             </Link>
-          </nav>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="flex-1">
         {/* Hero Section */}

@@ -46,38 +46,57 @@ pub fn parse_exif(exif: &Exif) -> ParseExifResult {
             Tag::FocalLength => focal_length = Some(field.display_value().with_unit(exif).to_string()),
             Tag::DateTimeOriginal => {
                 if let exif::Value::Ascii(ref v) = field.value {
-                    let v = &v[0];
-                    date_time = match time::PrimitiveDateTime::parse(
-                        &String::from_utf8_lossy(v),
-                        format_description!("[year]:[month]:[day] [hour]:[minute]:[second]"),
-                    ) {
-                        Ok(t) => Some(t),
-                        Err(_) => None,
+                    if let Some(v) = v.first() {
+                        date_time = match time::PrimitiveDateTime::parse(
+                            &String::from_utf8_lossy(v),
+                            format_description!("[year]:[month]:[day] [hour]:[minute]:[second]"),
+                        ) {
+                            Ok(t) => Some(t),
+                            Err(_) => None,
+                        }
                     }
                 }
             }
             Tag::GPSLatitude => {
                 if let exif::Value::Rational(ref v) = field.value {
-                    let v = &v[0];
-                    latitude = Some(v.num as f64 / v.denom as f64);
+                    if v.len() >= 3 {
+                        let d = v[0].num as f64 / v[0].denom as f64;
+                        let m = v[1].num as f64 / v[1].denom as f64;
+                        let s = v[2].num as f64 / v[2].denom as f64;
+                        latitude = Some(d + m / 60.0 + s / 3600.0);
+                    } else if let Some(v) = v.first() {
+                        latitude = Some(v.num as f64 / v.denom as f64);
+                    }
                 }
             }
             Tag::GPSLongitude => {
                 if let exif::Value::Rational(ref v) = field.value {
-                    let v = &v[0];
-                    longitude = Some(v.num as f64 / v.denom as f64);
+                    if v.len() >= 3 {
+                        let d = v[0].num as f64 / v[0].denom as f64;
+                        let m = v[1].num as f64 / v[1].denom as f64;
+                        let s = v[2].num as f64 / v[2].denom as f64;
+                        longitude = Some(d + m / 60.0 + s / 3600.0);
+                    } else if let Some(v) = v.first() {
+                        longitude = Some(v.num as f64 / v.denom as f64);
+                    }
                 }
             }
             Tag::GPSLatitudeRef => {
                 if let exif::Value::Ascii(ref v) = field.value {
-                    let v = &v[0];
-                    latitude_sign = if v[0] == b'S' { -1.0 } else { 1.0 };
+                    if let Some(v) = v.first() {
+                        if !v.is_empty() {
+                            latitude_sign = if v[0] == b'S' { -1.0 } else { 1.0 };
+                        }
+                    }
                 }
             }
             Tag::GPSLongitudeRef => {
                 if let exif::Value::Ascii(ref v) = field.value {
-                    let v = &v[0];
-                    longitude_sign = if v[0] == b'W' { -1.0 } else { 1.0 };
+                    if let Some(v) = v.first() {
+                        if !v.is_empty() {
+                            longitude_sign = if v[0] == b'W' { -1.0 } else { 1.0 };
+                        }
+                    }
                 }
             }
             _ => {}
