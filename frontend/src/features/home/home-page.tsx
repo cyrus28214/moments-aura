@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { CameraIcon, SparklesIcon, ShieldCheckIcon, ZapIcon, ArrowRightIcon } from 'lucide-react'
+import { SparklesIcon, ShieldCheckIcon, ZapIcon, ArrowRightIcon } from 'lucide-react'
 import { PublicHeader } from '../layout/public-header'
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
