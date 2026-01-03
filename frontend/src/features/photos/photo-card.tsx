@@ -41,15 +41,21 @@ export const PhotoCard = ({
     onDelete,
     onSlideshow
 }: PhotoCardProps) => {
-    const { url } = useImageBlob(image.id, 'thumbnail');
+    const { url } = useImageBlob(image.id, "thumbnail");
 
     return (
         <motion.div layout className="aspect-square flex items-center justify-center">
             <div
                 className="relative group max-w-full max-h-full"
-                style={{
-                    aspectRatio: coverMode ? '1 / 1' : `${image.width} / ${image.height}`,
-                }}
+                style={
+                    coverMode ? {
+                        width: '100%',
+                        height: '100%',
+                    } : {
+                        width: image.width > image.height ? '100%' : 'auto',
+                        height: image.height > image.width ? '100%' : 'auto',
+                    }
+                }
             >
                 <div
                     onClick={onClick}

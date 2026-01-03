@@ -105,6 +105,10 @@ struct Photo {
     height: i32,
     uploaded_at: i64,
     tags: Vec<String>,
+    captured_at: Option<i64>,
+    location: Option<String>,
+    latitude: Option<f64>,
+    longitude: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -141,6 +145,10 @@ pub async fn list_handler(
             "photo"."id",
             "photo"."image_hash",
             "photo"."uploaded_at",
+            "photo"."captured_at",
+            "photo"."location",
+            "photo"."latitude",
+            "photo"."longitude",
             "image"."width",
             "image"."height",
             COALESCE(ARRAY_AGG("tag"."name") FILTER (WHERE "tag"."name" IS NOT NULL), '{}') as "tags!"
@@ -182,6 +190,10 @@ pub async fn list_handler(
         height: v.height,
         uploaded_at: v.uploaded_at.unix_timestamp(),
         tags: v.tags.clone(),
+        captured_at: v.captured_at.map(|t| t.assume_utc().unix_timestamp()),
+        location: v.location.clone(),
+        latitude: v.latitude,
+        longitude: v.longitude,
     })
     .collect();
 
@@ -485,28 +497,11 @@ pub async fn recommend_tags_handler(
     })?
     .ok_or_else(|| (StatusCode::NOT_FOUND, "Image not found".to_string()))?;
 
-    // 2. Fetch image content
-    let bytes = storage.get(&photo.hash).map_err(|e| {
-        tracing::error!(error = ?e, "Failed to get image content for AI analysis");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal server error".to_string(),
-        )
-    })?;
+    // 2. Fetch image content (use thumbnail for AI analysis)
+    let bytes = images::get_or_create_thumbnail(&photo.hash, &storage)?;
 
-    // 3. Determine MIME type
-    let mime_type = match photo.extension.as_str() {
-        "jpeg" | "jpg" => "image/jpeg",
-        "png" => "image/png",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        _ => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Unsupported image format for AI analysis".to_string(),
-            ));
-        }
-    };
+    // 3. Determine MIME type (thumbnail is always JPEG)
+    let mime_type = "image/jpeg";
 
     // 4. Call AI Service
     let tags = ai_service

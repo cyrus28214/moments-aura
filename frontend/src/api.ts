@@ -47,6 +47,10 @@ export interface Image {
   height: number
   uploaded_at: number
   tags: string[]
+  captured_at?: number
+  location?: string
+  latitude?: number
+  longitude?: number
 }
 
 export interface ListImagesResult {

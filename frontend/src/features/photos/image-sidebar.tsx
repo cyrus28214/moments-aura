@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, SaveIcon, TagIcon, PlusIcon, XIcon, ImageIcon, Wand2Icon, Loader2Icon } from "lucide-react";
+import { CalendarIcon, SunIcon, ContrastIcon, DropletIcon, RotateCcwIcon, SaveIcon, TagIcon, PlusIcon, XIcon, ImageIcon, Wand2Icon, Loader2Icon, MapPinIcon, CameraIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -99,6 +99,25 @@ const ImageSidebarContent = ({
                             <span className="text-sm text-muted-foreground flex gap-2 items-center"><CalendarIcon className="w-4 h-4" /> Uploaded</span>
                             <p className="font-medium">{formatTimestamp(image.uploaded_at)}</p>
                         </div>
+
+                        {image.captured_at && (
+                            <div className="space-y-2">
+                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><CameraIcon className="w-4 h-4" /> Captured</span>
+                                <p className="font-medium">{formatTimestamp(image.captured_at)}</p>
+                            </div>
+                        )}
+
+                        {image.location && (
+                            <div className="space-y-2">
+                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><MapPinIcon className="w-4 h-4" /> Location</span>
+                                <p className="font-medium">{image.location}</p>
+                            </div>
+                        )}
+
+                        {/* <div className="space-y-2">
+                            <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Dimensions</span>
+                            <p className="font-medium">{image.width} x {image.height}</p>
+                        </div> */}
 
                         <div className="space-y-2">
                             <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Resolution</span>

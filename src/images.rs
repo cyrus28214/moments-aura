@@ -68,7 +68,7 @@ fn generate_thumbnail(image_bytes: &[u8]) -> Result<Vec<u8>, (StatusCode, String
         (StatusCode::BAD_REQUEST, "Invalid image format".to_string())
     })?;
 
-    let thumbnail = img.resize(400, 400, image::imageops::FilterType::Lanczos3);
+    let thumbnail = img.resize(512, 512, image::imageops::FilterType::Lanczos3);
 
     let mut buffer = Cursor::new(Vec::new());
     thumbnail
