@@ -100,10 +100,24 @@ const ImageSidebarContent = ({
                             <p className="font-medium">{formatTimestamp(image.uploaded_at)}</p>
                         </div>
 
-                        {image.captured_at && (
+                        <div className="space-y-2">
+                            <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Resolution</span>
+                            <p className="font-medium">{image.width} x {image.height}</p>
+                        </div>
+
+                        {(image.captured_at || image.make || image.model || image.lens_model || image.aperture || image.shutter_speed || image.iso || image.focal_length) && (
                             <div className="space-y-2">
-                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><CameraIcon className="w-4 h-4" /> Captured</span>
-                                <p className="font-medium">{formatTimestamp(image.captured_at)}</p>
+                                <span className="text-sm text-muted-foreground flex gap-2 items-center"><CameraIcon className="w-4 h-4" /> Camera </span>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {image.captured_at && <div className="col-span-2"><span className="text-muted-foreground">Captured At:</span> {formatTimestamp(image.captured_at)}</div>}
+                                    {image.lens_model && <div className="col-span-2"><span className="text-muted-foreground">Lens:</span> {image.lens_model}</div>}
+                                    {image.make && <div><span className="text-muted-foreground">Make:</span> {image.make}</div>}
+                                    {image.model && <div><span className="text-muted-foreground">Model:</span> {image.model}</div>}
+                                    {image.focal_length && <div><span className="text-muted-foreground">Focal:</span> {image.focal_length}</div>}
+                                    {image.aperture && <div><span className="text-muted-foreground">Aperture:</span> {image.aperture}</div>}
+                                    {image.shutter_speed && <div><span className="text-muted-foreground">Shutter:</span> {image.shutter_speed}</div>}
+                                    {image.iso && <div><span className="text-muted-foreground">ISO:</span> {image.iso}</div>}
+                                </div>
                             </div>
                         )}
 
@@ -113,16 +127,6 @@ const ImageSidebarContent = ({
                                 <p className="font-medium">{image.location}</p>
                             </div>
                         )}
-
-                        {/* <div className="space-y-2">
-                            <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Dimensions</span>
-                            <p className="font-medium">{image.width} x {image.height}</p>
-                        </div> */}
-
-                        <div className="space-y-2">
-                            <span className="text-sm text-muted-foreground flex gap-2 items-center"><ImageIcon className="w-4 h-4" /> Resolution</span>
-                            <p className="font-medium">{image.width} x {image.height}</p>
-                        </div>
 
                         <div className="space-y-2">
                             <span className="text-sm text-muted-foreground flex gap-2 items-center"><TagIcon className="w-4 h-4" /> Tags</span>

@@ -190,7 +190,7 @@ function DashboardLayoutContent({ onLogout }: { onLogout: () => void }) {
             </Sheet>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-scroll">
+            <div className="flex-1 overflow-y-auto">
                 <DashboardContext.Provider value={{ sidebarOpen, setSidebarOpen, features, isMobile, toggleMobileSidebar }}>
                     <Outlet />
                 </DashboardContext.Provider>

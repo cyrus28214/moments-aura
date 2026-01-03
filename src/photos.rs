@@ -57,6 +57,13 @@ pub async fn upload_handler(
         let mut latitude = None;
         let mut longitude = None;
         let mut location = None;
+        let mut make = None;
+        let mut model = None;
+        let mut lens_model = None;
+        let mut aperture = None;
+        let mut shutter_speed = None;
+        let mut iso = None;
+        let mut focal_length = None;
 
         if let Some(exif) = &info.exif {
             let parsed_exif = parse_exif(exif);
@@ -66,10 +73,17 @@ pub async fn upload_handler(
                 longitude = Some(coord.1);
                 location = Some(format!("{}", geocoder.search(coord).record));
             }
+            make = parsed_exif.make;
+            model = parsed_exif.model;
+            lens_model = parsed_exif.lens_model;
+            aperture = parsed_exif.aperture;
+            shutter_speed = parsed_exif.shutter_speed;
+            iso = parsed_exif.iso;
+            focal_length = parsed_exif.focal_length;
         }
 
         sqlx::query!(
-            "INSERT INTO photo (id, user_id, image_hash, uploaded_at, captured_at, latitude, longitude, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "INSERT INTO photo (id, user_id, image_hash, uploaded_at, captured_at, latitude, longitude, location, make, model, lens_model, aperture, shutter_speed, iso, focal_length) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
             photo_id,
             user_id,
             info.hash,
@@ -77,7 +91,14 @@ pub async fn upload_handler(
             captured_at,
             latitude,
             longitude,
-            location
+            location,
+            make,
+            model,
+            lens_model,
+            aperture,
+            shutter_speed,
+            iso,
+            focal_length
         )
         .execute(&db)
         .await
@@ -109,6 +130,13 @@ struct Photo {
     location: Option<String>,
     latitude: Option<f64>,
     longitude: Option<f64>,
+    make: Option<String>,
+    model: Option<String>,
+    lens_model: Option<String>,
+    aperture: Option<String>,
+    shutter_speed: Option<String>,
+    iso: Option<String>,
+    focal_length: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -149,6 +177,13 @@ pub async fn list_handler(
             "photo"."location",
             "photo"."latitude",
             "photo"."longitude",
+            "photo"."make",
+            "photo"."model",
+            "photo"."lens_model",
+            "photo"."aperture",
+            "photo"."shutter_speed",
+            "photo"."iso",
+            "photo"."focal_length",
             "image"."width",
             "image"."height",
             COALESCE(ARRAY_AGG("tag"."name") FILTER (WHERE "tag"."name" IS NOT NULL), '{}') as "tags!"
@@ -194,6 +229,13 @@ pub async fn list_handler(
         location: v.location.clone(),
         latitude: v.latitude,
         longitude: v.longitude,
+        make: v.make.clone(),
+        model: v.model.clone(),
+        lens_model: v.lens_model.clone(),
+        aperture: v.aperture.clone(),
+        shutter_speed: v.shutter_speed.clone(),
+        iso: v.iso.clone(),
+        focal_length: v.focal_length.clone(),
     })
     .collect();
 

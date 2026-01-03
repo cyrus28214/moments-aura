@@ -51,6 +51,13 @@ export interface Image {
   location?: string
   latitude?: number
   longitude?: number
+  make?: string
+  model?: string
+  lens_model?: string
+  aperture?: string
+  shutter_speed?: string
+  iso?: string
+  focal_length?: string
 }
 
 export interface ListImagesResult {

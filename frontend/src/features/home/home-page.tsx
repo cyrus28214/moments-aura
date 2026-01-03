@@ -60,7 +60,7 @@ export default function HomePage() {
               Rediscover your life's memories with intelligent tagging and semantic search.
             </p> */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link to="/register">
+              <Link to="/photos">
                 <Button size="lg" className="h-12 px-8 text-lg gap-2">
                   Get Started <ArrowRightIcon className="w-4 h-4" />
                 </Button>

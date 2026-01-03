@@ -12,6 +12,13 @@ pub fn get_image_exif<B: AsRef<[u8]>>(image_bytes: B) -> Option<Exif> {
 pub struct ParseExifResult {
     pub date_time: Option<PrimitiveDateTime>,
     pub coordinates: Option<(f64, f64)>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub lens_model: Option<String>,
+    pub aperture: Option<String>,
+    pub shutter_speed: Option<String>,
+    pub iso: Option<String>,
+    pub focal_length: Option<String>,
 }
 
 pub fn parse_exif(exif: &Exif) -> ParseExifResult {
@@ -20,8 +27,23 @@ pub fn parse_exif(exif: &Exif) -> ParseExifResult {
     let mut longitude: Option<f64> = None;
     let mut latitude_sign: f64 = 1.0;
     let mut longitude_sign: f64 = 1.0;
+    let mut make: Option<String> = None;
+    let mut model: Option<String> = None;
+    let mut lens_model: Option<String> = None;
+    let mut aperture: Option<String> = None;
+    let mut shutter_speed: Option<String> = None;
+    let mut iso: Option<String> = None;
+    let mut focal_length: Option<String> = None;
+
     for field in exif.fields() {
         match field.tag {
+            Tag::Make => make = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::Model => model = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::LensModel => lens_model = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::FNumber => aperture = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::ExposureTime => shutter_speed = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::PhotographicSensitivity => iso = Some(field.display_value().with_unit(exif).to_string()),
+            Tag::FocalLength => focal_length = Some(field.display_value().with_unit(exif).to_string()),
             Tag::DateTimeOriginal => {
                 if let exif::Value::Ascii(ref v) = field.value {
                     let v = &v[0];
@@ -70,5 +92,12 @@ pub fn parse_exif(exif: &Exif) -> ParseExifResult {
     ParseExifResult {
         date_time,
         coordinates,
+        make,
+        model,
+        lens_model,
+        aperture,
+        shutter_speed,
+        iso,
+        focal_length,
     }
 }

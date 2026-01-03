@@ -135,24 +135,26 @@ pub async fn save_image(
             )
         })?;
 
-        // save to database
-        sqlx::query!(
-            r#"INSERT INTO "image" ("hash", "size", "extension", "width", "height") VALUES ($1, $2, $3, $4, $5)"#,
-            info.hash,
-            info.size as i64,
-            info.extension,
-            info.width as i64,
-            info.height as i64
-        )
-        .execute(db)
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Interval server error".to_string(),
-            )
-        })?;
     }
+
+    // save to database
+    sqlx::query!(
+        r#"INSERT INTO "image" ("hash", "size", "extension", "width", "height") VALUES ($1, $2, $3, $4, $5) ON CONFLICT ("hash") DO NOTHING"#,
+        info.hash,
+        info.size as i64,
+        info.extension,
+        info.width as i64,
+        info.height as i64
+    )
+    .execute(db)
+    .await
+    .map_err(|e| {
+        tracing::error!(error = ?e, "Failed to insert image metadata");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".to_string(),
+        )
+    })?;
 
     Ok(info)
 }

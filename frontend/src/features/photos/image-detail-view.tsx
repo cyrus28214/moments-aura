@@ -208,7 +208,7 @@ export const ImageDetailView = ({ image, onClose, onNext, onPrev, tab, setTab }:
                 <div className="flex-1 bg-black/80 flex items-center justify-center">
                     {
                         imageUrl && (
-                            <ImageCanvas className="max-h-full max-w-full" ref={canvasRef} imageSrc={imageUrl} brightness={editorState.brightness} contrast={editorState.contrast} saturation={editorState.saturation} />
+                            <ImageCanvas className="w-full h-full object-contain block" ref={canvasRef} imageSrc={imageUrl} brightness={editorState.brightness} contrast={editorState.contrast} saturation={editorState.saturation} />
                         )
                     }
                 </div>
